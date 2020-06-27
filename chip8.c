@@ -23,6 +23,8 @@
 
 /* Memory space of the CHIP-8 */
 static uint8_t s_memory[MEMORY_SIZE];
+#define U16_MEMORY_READ(_addr) (*(uint16_t *)&s_memory[_addr])
+#define U16_MEMORY_WRITE(_addr, val) (*(uint16_t *)&s_memory[_addr] = val)
 
 /* 16, 8-bit V registers */
 static uint8_t s_v_regs[16];
@@ -54,14 +56,14 @@ clear_display (void)
 static void
 stack_push (uint16_t val)
 {
-    *(uint16_t *)&s_memory[s_stack_ptr] = val;
+    U16_MEMORY_WRITE(s_stack_ptr, val);
     s_stack_ptr -= 2;
 }
 
 static uint16_t
 stack_pop (void)
 {
-    uint16_t ret = *(uint16_t *)&s_memory[s_stack_ptr];
+    uint16_t ret = U16_MEMORY_READ(s_stack_ptr);
     s_stack_ptr += 2;
     return (ret);
 }
@@ -96,12 +98,24 @@ chip8_interpret_op2 (uint16_t op)
     s_pc = op & 0x0FFF;
 }
 
+static void
+chip8_interpret_op3 (uint16_t op)
+{
+    uint8_t reg = (op & 0x0F00) >> 8;
+    uint8_t val = op & 0x00FF;
+
+    if (s_v_regs[reg] == val) {
+        s_pc += 2;
+    }
+}
+
 typedef void (*op_decoder_t)(uint16_t op);
 
 static op_decoder_t s_opcode_decoder[] = {
     chip8_interpret_op0,
     chip8_interpret_op1,
     chip8_interpret_op2,
+    chip8_interpret_op3,
 };
 
 static void
@@ -112,6 +126,16 @@ chip8_interpret_op (uint16_t op)
     /* Dispatch opcode decoding to the right class of opcode.
      * The uppermost nibble is a fixed constant from 0-F. */
     s_opcode_decoder[op_class](op);
+}
+
+void
+chip8_step (void)
+{
+    uint16_t op = U16_MEMORY_READ(s_pc);
+
+    /* Increment PC for next instruction */
+    s_pc += 2;
+    chip8_interpret_op(op);
 }
 
 void

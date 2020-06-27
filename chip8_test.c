@@ -11,6 +11,12 @@
 
 #include "chip8.c"
 
+#ifdef __DEBUG__
+	#define DEBUG_PRINTF(fmt, ...) (printf("- "fmt"\n", __VA_ARGS__))
+#else /* __DEBUG__ */
+	#define DEBUG_PRINTF(fmt, ...)
+#endif /* __DEBUG__ */
+
 static void
 opc_00E0 (void **state)
 {
@@ -62,6 +68,57 @@ opc_2NNN (void **state)
 	}
 }
 
+static void
+opc_3XNN_skip (void **state)
+{
+	/* Skips the next instruction if VX equals NN.
+	 * (Usually the next instruction is a jump to skip a code block)  */
+
+	uint16_t i = 0x3000;
+	memset(&s_v_regs, 0, sizeof(s_v_regs));
+
+	/* Test each register behaves the same */
+	for (; i <= 0x3F00; i += 0x100) {
+		DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+		chip8_interpret_op(i);
+		DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+		/* Matches this time, so PC should be incremented in addition to
+		 * the normal interpreter step. */
+		assert_int_equal(s_pc, 0x202);
+		/* Reset for next instruction */
+		s_pc = PROGRAM_LOAD_ADDR;
+	}
+}
+
+static void
+opc_3XNN_noskip (void **state)
+{
+	/* Skips the next instruction if VX equals NN.
+	 * (Usually the next instruction is a jump to skip a code block)  */
+
+	uint16_t i = 0x3000;
+	memset(&s_v_regs, 0xDE, sizeof(s_v_regs));
+
+	/* Test each register behaves the same */
+	for (; i <= 0x3F00; i += 0x100) {
+		DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+		chip8_interpret_op(i);
+		DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+		/* Does not match, so PC will not be incremented again */
+		assert_int_equal(s_pc, 0x200);
+		/* Reset for next instruction */
+		s_pc = PROGRAM_LOAD_ADDR;
+	}
+}
+
+static void
+chip8_step_instruction (void **state)
+{
+	*(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
+	chip8_step();
+	assert_int_equal(s_pc, 0x0EEE);
+}
+
 static int
 chip8_test_init (void **state)
 {
@@ -75,7 +132,10 @@ main(int argc, char *argv[]) {
         cmocka_unit_test_setup(opc_00E0, chip8_test_init),
         cmocka_unit_test_setup(opc_00EE, chip8_test_init),
         cmocka_unit_test_setup(opc_1NNN, chip8_test_init),
+        cmocka_unit_test_setup(chip8_step_instruction, chip8_test_init),
         cmocka_unit_test_setup(opc_2NNN, chip8_test_init),
+        cmocka_unit_test_setup(opc_3XNN_skip, chip8_test_init),
+        cmocka_unit_test_setup(opc_3XNN_noskip, chip8_test_init),
     };
 
     return cmocka_run_group_tests(chip8_opc, NULL, NULL);

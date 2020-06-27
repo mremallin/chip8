@@ -17,9 +17,10 @@ chip8_test.o: chip8_test.c
 	gcc $(CFLAGS) $(TEST_CFLAGS) -c -o $@ $<
 
 chip8_test: chip8_test.o
-	gcc -v -o $@ $^ $(LIBRARIES) -lcmocka --coverage
+	gcc -o $@ $^ $(LIBRARIES) -lcmocka --coverage
 
 test: chip8_test
+	./chip8_test
 
 lcov:
 	mkdir -p lcov && \

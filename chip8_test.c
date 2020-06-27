@@ -267,7 +267,7 @@ opc_8XY0 (void **state)
 	int j = 0;
 
 	for (; i < 0x8FFF; i += 0x100) {
-		for (; j < 0xF0; j += 0x10) {
+		for (j = 0; j < 0xF0; j += 0x10) {
 			i = (i & 0xFF00) | (j & 0xFF);
 			/* Set destination with a known value */
 			chip8_interpret_op(0x6005 | (i & 0x0F00));
@@ -289,7 +289,7 @@ opc_8XY1 (void **state)
 	int j = 0;
 
 	for (; i < 0x8FFF; i += 0x100) {
-		for (; j < 0xF1; j += 0x10) {
+		for (j = 0; j < 0xF1; j += 0x10) {
 			i = (i & 0xFF0F) | (j & 0xFF);
 			/* Set destination with a known value */
 			chip8_interpret_op(0x6005 | (i & 0x0F00));
@@ -319,7 +319,7 @@ opc_8XY2 (void **state)
 	int j = 0;
 
 	for (; i < 0x8FFF; i += 0x100) {
-		for (; j < 0xF2; j += 0x10) {
+		for (j = 0; j < 0xF2; j += 0x10) {
 			i = (i & 0xFF0F) | (j & 0xFF);
 			/* Set destination with a known value */
 			chip8_interpret_op(0x6005 | (i & 0x0F00));

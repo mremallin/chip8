@@ -29,6 +29,8 @@ debug_printf (const char *fmt, ...)
 
 #define DEBUG_PRINTF(fmt, ...) (debug_printf("- "fmt"\n", __VA_ARGS__))
 
+#define BUILD_XNN_OPC(_opc, _x, _nn) (((_opc & 0xF) << 12) | ((_x & 0xF) << 8) | (_nn & 0xFF))
+
 static void
 opc_00E0 (void **state)
 {
@@ -86,14 +88,16 @@ opc_3XNN_skip (void **state)
 	/* Skips the next instruction if VX equals NN.
 	 * (Usually the next instruction is a jump to skip a code block)  */
 
-	uint16_t i = 0x3000;
+	int i = 0;
+	uint16_t op;
 	memset(&s_v_regs, 0, sizeof(s_v_regs));
 
 	/* Test each register behaves the same */
-	for (; i <= 0x3F00; i += 0x100) {
-		DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", i, s_pc);
-		chip8_interpret_op(i);
-		DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+	for (; i <= NUM_V_REGISTERS; i++) {
+		op = BUILD_XNN_OPC(3, i, 00);
+		DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", op, s_pc);
+		chip8_interpret_op(op);
+		DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", op, s_pc);
 		/* Matches this time, so PC should be incremented in addition to
 		 * the normal interpreter step. */
 		assert_int_equal(s_pc, 0x202);

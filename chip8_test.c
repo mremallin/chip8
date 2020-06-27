@@ -11,6 +11,7 @@
 
 #include "chip8.c"
 
+//#define __DEBUG__
 #ifdef __DEBUG__
 	#define DEBUG_PRINTF(fmt, ...) (printf("- "fmt"\n", __VA_ARGS__))
 #else /* __DEBUG__ */
@@ -154,6 +155,68 @@ opc_4XNN_noskip (void **state)
 }
 
 static void
+opc_5XY0_skip (void **state)
+{
+	/* Skips the next instruction if VX equals VY.
+	 * (Usually the next instruction is a jump to skip a code block)  */
+
+	uint16_t i = 0x5000;
+	uint16_t j = 0x0;
+	memset(&s_v_regs, 0, sizeof(s_v_regs));
+
+	/* Test each register behaves the same */
+	for (; i <= 0x5FFF; i += 0x100) {
+		for (j = 0; j < 0x00F0; j += 0x10) {
+			i = (i & 0xFF00) | j;
+			DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+			chip8_interpret_op(i);
+			DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+			/* Match, so PC should be incremented again. */
+			assert_int_equal(s_pc, 0x202);
+			/* Reset for next instruction */
+			s_pc = PROGRAM_LOAD_ADDR;
+		}
+	}	
+}
+
+static void
+opc_5XY0_noskip (void **state)
+{
+	/* Skips the next instruction if VX equals VY.
+	 * (Usually the next instruction is a jump to skip a code block)  */
+
+	uint16_t i = 0x5000;
+	uint16_t j = 0x0;
+	memset(&s_v_regs, 0, sizeof(s_v_regs));
+
+	/* Test each register behaves the same */
+	for (; i <= 0x5FFF; i += 0x100) {
+		for (j = 0; j < 0x00F0; j += 0x10) {
+			i = (i & 0xFF00) | j;
+			/* Ensure that VI != VJ */
+			if (((i & 0x0F00) >> 8) == j >> 8) {
+				DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+				chip8_interpret_op(i);
+				DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+				/* X == Y so the contents of the register is guaranteed to
+				 * be identical */
+				assert_int_equal(s_pc, 0x202);
+			} else {
+				s_v_regs[(i & 0x0F00) >> 8] = 1;
+				s_v_regs[j >> 8] = 2;
+				DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+				chip8_interpret_op(i);
+				DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+				/* No match, so PC should not be incremented. */
+				assert_int_equal(s_pc, 0x200);
+			}
+			/* Reset for next instruction */
+			s_pc = PROGRAM_LOAD_ADDR;
+		}
+	}	
+}
+
+static void
 chip8_step_instruction (void **state)
 {
 	*(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -180,6 +243,8 @@ main(int argc, char *argv[]) {
         cmocka_unit_test_setup(opc_3XNN_noskip, chip8_test_init),
         cmocka_unit_test_setup(opc_4XNN_skip, chip8_test_init),
         cmocka_unit_test_setup(opc_4XNN_noskip, chip8_test_init),
+        cmocka_unit_test_setup(opc_5XY0_skip, chip8_test_init),
+        cmocka_unit_test_setup(opc_5XY0_noskip, chip8_test_init),
     };
 
     return cmocka_run_group_tests(chip8_opc, NULL, NULL);

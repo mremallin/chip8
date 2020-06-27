@@ -112,14 +112,16 @@ opc_3XNN_noskip (void **state)
     /* Skips the next instruction if VX equals NN.
      * (Usually the next instruction is a jump to skip a code block)  */
 
-    uint16_t i = 0x3000;
+    int i = 0;
+    uint16_t op;
     memset(&s_v_regs, 0xDE, sizeof(s_v_regs));
 
     /* Test each register behaves the same */
-    for (; i <= 0x3F00; i += 0x100) {
-        DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", i, s_pc);
-        chip8_interpret_op(i);
-        DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+    for (; i <= NUM_V_REGISTERS; i++) {
+        op = BUILD_XNN_OPC(3, i, 0xDE);
+        DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", op, s_pc);
+        chip8_interpret_op(op);
+        DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", op, s_pc);
         /* Does not match, so PC will not be incremented again */
         assert_int_equal(s_pc, 0x200);
         /* Reset for next instruction */

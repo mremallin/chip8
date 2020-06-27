@@ -239,9 +239,12 @@ opc_7XNN (void **state)
 	int i = 0x7000;
 
 	for (; i < 0x7FFF; i++) {
+		s_v_regs[(i & 0x0F00) >> 8] = 5;
 		chip8_interpret_op(i);
-		assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], i & 0xFF);
-		assert_int_equal(s_v_regs[0xF], 0);
+		assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], (uint8_t)((i & 0xFF) + 5));
+		if ((i & 0x0F00) != 0x0F00) {
+			assert_int_equal(s_v_regs[0xF], 0);
+		}
 	}
 }
 
@@ -275,6 +278,7 @@ main(int argc, char *argv[]) {
         cmocka_unit_test_setup(opc_5XY0_skip, chip8_test_init),
         cmocka_unit_test_setup(opc_5XY0_noskip, chip8_test_init),
         cmocka_unit_test_setup(opc_6XNN, chip8_test_init),
+        cmocka_unit_test_setup(opc_7XNN, chip8_test_init),
     };
 
     return cmocka_run_group_tests(chip8_opc, NULL, NULL);

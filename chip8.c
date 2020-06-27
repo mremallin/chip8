@@ -142,6 +142,12 @@ chip8_interpret_op6 (uint16_t op)
     s_v_regs[OPC_REGX(op)] = OPC_NN(op);
 }
 
+static void
+chip8_interpret_op7 (uint16_t op)
+{
+    s_v_regs[OPC_REGX(op)] += OPC_NN(op);
+}
+
 /* Dispatch table for different opcode types, upper-most nibble */
 typedef void (*op_decoder_t)(uint16_t op);
 
@@ -153,6 +159,7 @@ static op_decoder_t s_opcode_decoder[] = {
     chip8_interpret_op4,
     chip8_interpret_op5,
     chip8_interpret_op6,
+    chip8_interpret_op7,
 };
 
 static void

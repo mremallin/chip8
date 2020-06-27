@@ -74,7 +74,7 @@ opc_2NNN (void **state)
 		/* Push current PC on stack */
 		assert_int_equal(s_stack_ptr, STACK_BASE_ADDR-2);
 		/* Load PC with 3 nibbles of the op */
-		assert_int_equal(s_pc, i-0x2000);
+		assert_int_equal(s_pc, OPC_NNN(i));
 		/* Return from the subroutine to clean up */
 		chip8_interpret_op(0x00EE);
 	}

@@ -160,6 +160,9 @@ chip8_interpret_op8 (uint16_t op)
         case 1: /* 0x8XY1 */
             s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] | s_v_regs[OPC_REGY(op)];
             break;
+        case 2: /* 0x8XY2 */
+            s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] & s_v_regs[OPC_REGY(op)];
+            break;
     }
 }
 

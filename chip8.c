@@ -32,7 +32,8 @@ static uint8_t s_memory[MEMORY_SIZE];
 #define U16_MEMORY_WRITE(_addr, val) (*(uint16_t *)&s_memory[_addr] = val)
 
 /* 16, 8-bit V registers */
-static uint8_t s_v_regs[16];
+#define NUM_V_REGISTERS 16
+static uint8_t s_v_regs[NUM_V_REGISTERS];
 
 /* 16-bit I register */
 static uint16_t s_i_reg;

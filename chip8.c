@@ -43,7 +43,7 @@ static uint16_t s_stack_ptr;
 /* Graphics buffer */
 #define DISPLAY_WIDTH   64
 #define DISPLAY_HEIGHT  32
-static uint8_t s_vram[BITS2BYTES(DISPLAY_WIDTH*DISPLAY_HEIGHT)];
+static uint8_t s_vram[BITS2BYTES(DISPLAY_WIDTH * DISPLAY_HEIGHT)];
 
 static void
 clear_display (void)
@@ -57,6 +57,7 @@ chip8_interpret_op0 (uint16_t op)
 {
     switch (op) {
         default:
+            /* Would call machine-code routine at the given address */
             assert(false);
         case 0x00E0:
             clear_display();
@@ -69,10 +70,17 @@ chip8_interpret_op0 (uint16_t op)
     }
 }
 
+static void
+chip8_interpret_op1 (uint16_t op)
+{
+    s_pc = op & 0x0FFF;
+}
+
 typedef void (*op_decoder_t)(uint16_t op);
 
 static op_decoder_t s_opcode_decoder[] = {
     chip8_interpret_op0,
+    chip8_interpret_op1,
 };
 
 static void

@@ -11,6 +11,11 @@
 
 #define BITS2BYTES(_bits) (_bits / 8)
 
+#define OPC_REGX(_op)   ((_op & 0x0F00) >> 8)
+#define OPC_REGY(_op)   ((_op & 0x00F0) >> 4)
+#define OPC_NN(_op)     (_op & 0x00FF)
+#define OPC_NNN(_op)    (_op & 0x0FFF)
+
 /* Information from https://en.wikipedia.org/wiki/CHIP-8 */
 #define PROGRAM_LOAD_ADDR       0x200
 #define STACK_END_ADDR          0xEA0
@@ -88,23 +93,23 @@ chip8_interpret_op0 (uint16_t op)
 static void
 chip8_interpret_op1 (uint16_t op)
 {
-    s_pc = op & 0x0FFF;
+    s_pc = OPC_NNN(op);
 }
 
 static void
 chip8_interpret_op2 (uint16_t op)
 {
     stack_push(s_pc);
-    s_pc = op & 0x0FFF;
+    s_pc = OPC_NNN(op);
 }
 
 static void
 chip8_interpret_op3 (uint16_t op)
 {
-    uint8_t reg = (op & 0x0F00) >> 8;
-    uint8_t val = op & 0x00FF;
+    uint8_t vx = OPC_REGX(op);
+    uint8_t val = OPC_NN(op);
 
-    if (s_v_regs[reg] == val) {
+    if (s_v_regs[vx] == val) {
         s_pc += 2;
     }
 }
@@ -112,10 +117,10 @@ chip8_interpret_op3 (uint16_t op)
 static void
 chip8_interpret_op4 (uint16_t op)
 {
-    uint8_t reg = (op & 0x0F00) >> 8;
-    uint8_t val = op & 0x00FF;
+    uint8_t vx = OPC_REGX(op);
+    uint8_t val = OPC_NN(op);
 
-    if (s_v_regs[reg] != val) {
+    if (s_v_regs[vx] != val) {
         s_pc += 2;
     }
 }
@@ -123,10 +128,10 @@ chip8_interpret_op4 (uint16_t op)
 static void
 chip8_interpret_op5 (uint16_t op)
 {
-    uint8_t reg1 = (op & 0x0F00) >> 8;
-    uint8_t reg2 = (op & 0x00F0) >> 8;
+    uint8_t vx = OPC_REGX(op);
+    uint8_t vy = OPC_REGY(op);
 
-    if (s_v_regs[reg1] == s_v_regs[reg2]) {
+    if (s_v_regs[vx] == s_v_regs[vy]) {
         s_pc += 2;
     }
 }
@@ -134,7 +139,7 @@ chip8_interpret_op5 (uint16_t op)
 static void
 chip8_interpret_op6 (uint16_t op)
 {
-    s_v_regs[(op & 0x0F00) >> 8] = op & 0xFF;
+    s_v_regs[OPC_REGX(op)] = OPC_NN(op);
 }
 
 /* Dispatch table for different opcode types, upper-most nibble */

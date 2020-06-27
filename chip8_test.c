@@ -8,10 +8,11 @@
 #include <stddef.h>
 #include <setjmp.h>
 #include <cmocka.h>
+#include <stdio.h>
 
 #include "chip8.c"
 
-//#define __DEBUG__
+#define __DEBUG__
 #ifdef __DEBUG__
 	#define DEBUG_PRINTF(fmt, ...) (printf("- "fmt"\n", __VA_ARGS__))
 #else /* __DEBUG__ */
@@ -192,10 +193,12 @@ opc_5XY0_noskip (void **state)
 	/* Test each register behaves the same */
 	for (; i <= 0x5FFF; i += 0x100) {
 		for (j = 0; j < 0x00F0; j += 0x10) {
-			i = (i & 0xFF00) | j;
+			/* Combine regs to make the opcode */
+			i = (i & 0xFF00) | (j & 0xFF);
+
+			DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", i, s_pc);
 			/* Ensure that VI != VJ */
-			if (((i & 0x0F00) >> 8) == j >> 8) {
-				DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+			if (((i & 0x0F00) >> 4) == (j & 0xFF)) {
 				chip8_interpret_op(i);
 				DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", i, s_pc);
 				/* X == Y so the contents of the register is guaranteed to
@@ -203,8 +206,7 @@ opc_5XY0_noskip (void **state)
 				assert_int_equal(s_pc, 0x202);
 			} else {
 				s_v_regs[(i & 0x0F00) >> 8] = 1;
-				s_v_regs[j >> 8] = 2;
-				DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+				s_v_regs[j >> 4] = 2;
 				chip8_interpret_op(i);
 				DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", i, s_pc);
 				/* No match, so PC should not be incremented. */
@@ -226,6 +228,20 @@ opc_6XNN (void **state)
 	for (; i < 0x6FFF; i++) {
 		chip8_interpret_op(i);
 		assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], i & 0xFF);
+	}
+}
+
+static void
+opc_7XNN (void **state)
+{
+	/* Adds NN to VX. (Carry flag is not changed)  */
+
+	int i = 0x7000;
+
+	for (; i < 0x7FFF; i++) {
+		chip8_interpret_op(i);
+		assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], i & 0xFF);
+		assert_int_equal(s_v_regs[0xF], 0);
 	}
 }
 

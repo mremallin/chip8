@@ -12,7 +12,7 @@
 
 #include "chip8.c"
 
-#define __DEBUG__
+//#define __DEBUG__
 #ifdef __DEBUG__
 	#define DEBUG_PRINTF(fmt, ...) (printf("- "fmt"\n", __VA_ARGS__))
 #else /* __DEBUG__ */
@@ -249,6 +249,28 @@ opc_7XNN (void **state)
 }
 
 static void
+opc_8XY0 (void **state)
+{
+	/* Sets VX to the value of VY. */
+
+	int i = 0x8000;
+	int j = 0;
+
+	for (; i < 0x8FFF; i += 0x100) {
+		for (; j < 0xF0; j += 0x10) {
+			i = (i & 0xFF00) | (j & 0xFF);
+			/* Set destination with a known value */
+			chip8_interpret_op(0x6005 | (i & 0x0F00));
+			/* Set source to test value */
+			chip8_interpret_op(0x60a0 | ((j & 0xF0) << 4));
+			/* Set VX to VY */
+			chip8_interpret_op(i);
+			assert_int_equal(s_v_regs[(i & 0x00F0) >> 4], s_v_regs[(i & 0x0F00) >> 8]);
+		}
+	}
+}
+
+static void
 chip8_step_instruction (void **state)
 {
 	*(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -279,6 +301,7 @@ main(int argc, char *argv[]) {
         cmocka_unit_test_setup(opc_5XY0_noskip, chip8_test_init),
         cmocka_unit_test_setup(opc_6XNN, chip8_test_init),
         cmocka_unit_test_setup(opc_7XNN, chip8_test_init),
+        cmocka_unit_test_setup(opc_8XY0, chip8_test_init),
     };
 
     return cmocka_run_group_tests(chip8_opc, NULL, NULL);

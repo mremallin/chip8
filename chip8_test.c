@@ -130,6 +130,29 @@ opc_3XNN_noskip (void **state)
 }
 
 static void
+opc_4XNN_skip (void **state)
+{
+    /* Skips the next instruction if VX doesn't equal NN.
+     * (Usually the next instruction is a jump to skip a code block)  */
+
+    int i = 0;
+    uint16_t op;
+    memset(&s_v_regs, 0, sizeof(s_v_regs));
+
+    /* Test each register behaves the same */
+    for (; i <= NUM_V_REGISTERS; i++) {
+        op = BUILD_XNN_OPC(4, i, 0xDE);
+        DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", op, s_pc);
+        chip8_interpret_op(op);
+        DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", op, s_pc);
+        /* Match, so PC should be incremented again. */
+        assert_int_equal(s_pc, 0x202);
+        /* Reset for next instruction */
+        s_pc = PROGRAM_LOAD_ADDR;
+    }
+}
+
+static void
 opc_4XNN_noskip (void **state)
 {
     /* Skips the next instruction if VX doesn't equal NN.
@@ -147,27 +170,6 @@ opc_4XNN_noskip (void **state)
         DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", op, s_pc);
         /* Doesn't match, so PC should not be incremented again. */
         assert_int_equal(s_pc, 0x200);
-        /* Reset for next instruction */
-        s_pc = PROGRAM_LOAD_ADDR;
-    }
-}
-
-static void
-opc_4XNN_skip (void **state)
-{
-    /* Skips the next instruction if VX doesn't equal NN.
-     * (Usually the next instruction is a jump to skip a code block)  */
-
-    uint16_t i = 0x4011;
-    memset(&s_v_regs, 0, sizeof(s_v_regs));
-
-    /* Test each register behaves the same */
-    for (; i <= 0x4F11; i += 0x100) {
-        DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", i, s_pc);
-        chip8_interpret_op(i);
-        DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", i, s_pc);
-        /* Match, so PC should be incremented again. */
-        assert_int_equal(s_pc, 0x202);
         /* Reset for next instruction */
         s_pc = PROGRAM_LOAD_ADDR;
     }

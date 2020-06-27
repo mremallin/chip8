@@ -112,6 +112,48 @@ opc_3XNN_noskip (void **state)
 }
 
 static void
+opc_4XNN_skip (void **state)
+{
+	/* Skips the next instruction if VX doesn't equal NN.
+	 * (Usually the next instruction is a jump to skip a code block)  */
+
+	uint16_t i = 0x4000;
+	memset(&s_v_regs, 0, sizeof(s_v_regs));
+
+	/* Test each register behaves the same */
+	for (; i <= 0x4F00; i += 0x100) {
+		DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+		chip8_interpret_op(i);
+		DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+		/* Doesn't match, so PC should not be incremented again. */
+		assert_int_equal(s_pc, 0x200);
+		/* Reset for next instruction */
+		s_pc = PROGRAM_LOAD_ADDR;
+	}
+}
+
+static void
+opc_4XNN_noskip (void **state)
+{
+	/* Skips the next instruction if VX doesn't equal NN.
+	 * (Usually the next instruction is a jump to skip a code block)  */
+
+	uint16_t i = 0x4011;
+	memset(&s_v_regs, 0, sizeof(s_v_regs));
+
+	/* Test each register behaves the same */
+	for (; i <= 0x4F11; i += 0x100) {
+		DEBUG_PRINTF("Before - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+		chip8_interpret_op(i);
+		DEBUG_PRINTF("After - Op: 0x%x, s_pc: 0x%x", i, s_pc);
+		/* Match, so PC should be incremented again. */
+		assert_int_equal(s_pc, 0x202);
+		/* Reset for next instruction */
+		s_pc = PROGRAM_LOAD_ADDR;
+	}
+}
+
+static void
 chip8_step_instruction (void **state)
 {
 	*(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -136,6 +178,8 @@ main(int argc, char *argv[]) {
         cmocka_unit_test_setup(opc_2NNN, chip8_test_init),
         cmocka_unit_test_setup(opc_3XNN_skip, chip8_test_init),
         cmocka_unit_test_setup(opc_3XNN_noskip, chip8_test_init),
+        cmocka_unit_test_setup(opc_4XNN_skip, chip8_test_init),
+        cmocka_unit_test_setup(opc_4XNN_noskip, chip8_test_init),
     };
 
     return cmocka_run_group_tests(chip8_opc, NULL, NULL);

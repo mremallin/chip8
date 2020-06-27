@@ -9,15 +9,25 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "chip8.c"
 
-//#define __DEBUG__
-#ifdef __DEBUG__
-	#define DEBUG_PRINTF(fmt, ...) (printf("- "fmt"\n", __VA_ARGS__))
-#else /* __DEBUG__ */
-	#define DEBUG_PRINTF(fmt, ...)
-#endif /* __DEBUG__ */
+static bool s_debug = false;
+
+static void
+debug_printf (const char *fmt, ...)
+{
+	va_list ap;
+
+	if (s_debug) {
+		va_start(ap, fmt);
+		vprintf(fmt, ap);
+		va_end(ap);
+	}
+}
+
+#define DEBUG_PRINTF(fmt, ...) (debug_printf("- "fmt"\n", __VA_ARGS__))
 
 static void
 opc_00E0 (void **state)
@@ -285,8 +295,27 @@ chip8_test_init (void **state)
 	return 0;
 }
 
+static void
+parse_args (int argc, char *argv[])
+{
+	char opt = '\0';
+
+	while (opt != -1) {
+		opt = getopt(argc, argv, "d");
+
+		switch (opt) {
+			default:
+				break;
+			case 'd':
+				s_debug = true;
+				break;
+		}
+	}
+}
+
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
     const struct CMUnitTest chip8_opc[] = {
         cmocka_unit_test_setup(opc_00E0, chip8_test_init),
         cmocka_unit_test_setup(opc_00EE, chip8_test_init),
@@ -303,6 +332,8 @@ main(int argc, char *argv[]) {
         cmocka_unit_test_setup(opc_7XNN, chip8_test_init),
         cmocka_unit_test_setup(opc_8XY0, chip8_test_init),
     };
+
+    parse_args(argc, argv);
 
     return cmocka_run_group_tests(chip8_opc, NULL, NULL);
 }

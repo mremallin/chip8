@@ -166,6 +166,14 @@ chip8_interpret_op8 (uint16_t op)
         case 3: /* 0x8XY3 */
             s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] ^ s_v_regs[OPC_REGY(op)];
             break;
+        case 4: /* 0x8XY4 */
+            {
+                uint16_t tmp = (uint16_t)(s_v_regs[OPC_REGX(op)]) + (uint16_t)(s_v_regs[OPC_REGY(op)]);
+                s_v_regs[OPC_REGX(op)] = tmp & 0xFF;
+                /* Detect carry into VF */
+                s_v_regs[0xF] = ((tmp & 0x100) >> 8);
+            }
+            break;
     }
 }
 

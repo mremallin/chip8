@@ -371,6 +371,84 @@ opc_8XY3 (void **state)
 }
 
 static void
+opc_8XY4_no_carry (void **state)
+{
+	/* Adds VY to VX. VF is set to 1 when there's a carry,
+	 * and to 0 when there isn't.   */
+
+	int i = 0x8004;
+	int j = 0;
+
+	for (; i < 0x8FFF; i += 0x100) {
+		for (j = 0; j < 0xF4; j += 0x10) {
+			i = (i & 0xFF0F) | (j & 0xFF);
+			/* Set destination with a known value */
+			chip8_interpret_op(0x6005 | (i & 0x0F00));
+			DEBUG_PRINTF("VX: 0x%x", s_v_regs[(i & 0x0F00) >> 8]);
+			/* Set source to test value */
+			chip8_interpret_op(0x6010 | ((j & 0xF0) << 4));
+			DEBUG_PRINTF("VY: 0x%x", s_v_regs[(i & 0x00F0) >> 4]);
+			DEBUG_PRINTF("VX2: 0x%x", s_v_regs[(i & 0x0F00) >> 8]);
+			/* Set VX to VY */
+			chip8_interpret_op(i);
+			DEBUG_PRINTF("After - Op: 0x%x, VX: 0x%x", i, s_v_regs[(i & 0x0F00) >> 8]);
+
+			/* It's entirely legal for someone to want to drop the result
+			 * into the flag register (VF), but that means it will be
+			 * overwritten by the carry flag result */
+			if ((i & 0x0F00) >> 8 == 0xF) {
+				assert_int_equal(s_v_regs[0xF], 0);
+			} else if (((i & 0x0F00) >> 4) == (j & 0xF0)) {
+				assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], 0x20);
+				assert_int_equal(s_v_regs[0xF], 0);
+			} else {
+				assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], 0x15);
+				assert_int_equal(s_v_regs[0xF], 0);
+			}
+		}
+	}
+}
+
+static void
+opc_8XY4_carry (void **state)
+{
+	/* Adds VY to VX. VF is set to 1 when there's a carry,
+	 * and to 0 when there isn't.   */
+
+	int i = 0x8004;
+	int j = 0;
+
+	for (; i < 0x8FFF; i += 0x100) {
+		for (j = 0; j < 0xF4; j += 0x10) {
+			i = (i & 0xFF0F) | (j & 0xFF);
+			/* Set destination with a known value */
+			chip8_interpret_op(0x60FF | (i & 0x0F00));
+			DEBUG_PRINTF("VX: 0x%x", s_v_regs[(i & 0x0F00) >> 8]);
+			/* Set source to test value */
+			chip8_interpret_op(0x60AF | ((j & 0xF0) << 4));
+			DEBUG_PRINTF("VY: 0x%x", s_v_regs[(i & 0x00F0) >> 4]);
+			DEBUG_PRINTF("VX2: 0x%x", s_v_regs[(i & 0x0F00) >> 8]);
+			/* Set VX to VY */
+			chip8_interpret_op(i);
+			DEBUG_PRINTF("After - Op: 0x%x, VX: 0x%x", i, s_v_regs[(i & 0x0F00) >> 8]);
+
+			/* It's entirely legal for someone to want to drop the result
+			 * into the flag register (VF), but that means it will be
+			 * overwritten by the carry flag result */
+			if ((i & 0x0F00) >> 8 == 0xF) {
+				assert_int_equal(s_v_regs[0xF], 1);
+			} else if (((i & 0x0F00) >> 4) == (j & 0xF0)) {
+				assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], 0x5E);
+				assert_int_equal(s_v_regs[0xF], 1);
+			} else {
+				assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], 0xAE);
+				assert_int_equal(s_v_regs[0xF], 1);
+			}
+		}
+	}
+}
+
+static void
 chip8_step_instruction (void **state)
 {
 	*(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -424,6 +502,8 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_8XY1, chip8_test_init),
         cmocka_unit_test_setup(opc_8XY2, chip8_test_init),
         cmocka_unit_test_setup(opc_8XY3, chip8_test_init),
+        cmocka_unit_test_setup(opc_8XY4_no_carry, chip8_test_init),
+        cmocka_unit_test_setup(opc_8XY4_carry, chip8_test_init),
     };
 
     parse_args(argc, argv);

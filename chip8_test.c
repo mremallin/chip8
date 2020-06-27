@@ -59,7 +59,7 @@ opc_1NNN (void **state)
 
 	for (; i <= 0x1FFF; i++) {
 		chip8_interpret_op(i);
-		assert_int_equal(s_pc, i-0x1000);
+		assert_int_equal(s_pc, OPC_NNN(i));
 	}
 }
 

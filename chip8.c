@@ -51,6 +51,21 @@ clear_display (void)
     memset(s_vram, 0, sizeof(s_vram));
 }
 
+static void
+stack_push (uint16_t val)
+{
+    *(uint16_t *)&s_memory[s_stack_ptr] = val;
+    s_stack_ptr -= 2;
+}
+
+static uint16_t
+stack_pop (void)
+{
+    uint16_t ret = *(uint16_t *)&s_memory[s_stack_ptr];
+    s_stack_ptr += 2;
+    return (ret);
+}
+
 /* Opcode decoding */
 static void
 chip8_interpret_op0 (uint16_t op)
@@ -63,9 +78,7 @@ chip8_interpret_op0 (uint16_t op)
             clear_display();
             break;
         case 0x00EE:
-            /* Pop stack to PC */
-            s_pc = *(uint16_t *)&s_memory[s_stack_ptr];
-            s_stack_ptr += 2;
+            s_pc = stack_pop();
             break;
     }
 }
@@ -76,11 +89,19 @@ chip8_interpret_op1 (uint16_t op)
     s_pc = op & 0x0FFF;
 }
 
+static void
+chip8_interpret_op2 (uint16_t op)
+{
+    stack_push(s_pc);
+    s_pc = op & 0x0FFF;
+}
+
 typedef void (*op_decoder_t)(uint16_t op);
 
 static op_decoder_t s_opcode_decoder[] = {
     chip8_interpret_op0,
     chip8_interpret_op1,
+    chip8_interpret_op2,
 };
 
 static void

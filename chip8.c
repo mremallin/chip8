@@ -151,7 +151,16 @@ chip8_interpret_op7 (uint16_t op)
 static void
 chip8_interpret_op8 (uint16_t op)
 {
-    s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGY(op)];
+    switch (op & 0xF) {
+        default:
+            assert(false);
+        case 0: /* 0x8XY0 */
+            s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGY(op)];
+            break;
+        case 1: /* 0x8XY1 */
+            s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] | s_v_regs[OPC_REGY(op)];
+            break;
+    }
 }
 
 /* Dispatch table for different opcode types, upper-most nibble */

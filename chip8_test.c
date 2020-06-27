@@ -217,6 +217,19 @@ opc_5XY0_noskip (void **state)
 }
 
 static void
+opc_6XNN (void **state)
+{
+	/* Sets VX to NN. */
+
+	int i = 0x6000;
+
+	for (; i < 0x6FFF; i++) {
+		chip8_interpret_op(i);
+		assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], i & 0xFF);
+	}
+}
+
+static void
 chip8_step_instruction (void **state)
 {
 	*(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -245,6 +258,7 @@ main(int argc, char *argv[]) {
         cmocka_unit_test_setup(opc_4XNN_noskip, chip8_test_init),
         cmocka_unit_test_setup(opc_5XY0_skip, chip8_test_init),
         cmocka_unit_test_setup(opc_5XY0_noskip, chip8_test_init),
+        cmocka_unit_test_setup(opc_6XNN, chip8_test_init),
     };
 
     return cmocka_run_group_tests(chip8_opc, NULL, NULL);

@@ -8,8 +8,8 @@
 
 #include <SDL2/SDL.h>
 
-#define WINDOW_WIDTH 	640
-#define WINDOW_HEIGHT 	480
+#define WINDOW_WIDTH    640
+#define WINDOW_HEIGHT   480
 
 #define ERROR_LOG(...) (fprintf(stderr, __VA_ARGS__))
 
@@ -19,7 +19,7 @@ static SDL_Window       *main_window = NULL;
 static SDL_Window *
 get_window (void)
 {
-	return main_window;
+    return main_window;
 }
 
 static void

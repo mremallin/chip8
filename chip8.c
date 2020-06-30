@@ -20,8 +20,8 @@
 #define PROGRAM_LOAD_ADDR       0x200
 #define STACK_END_ADDR          0xEA0
 /* 0xEFF is the last valid address in the stack, but because the
- * stack stores 16-bit pointers we start at 0xEFE to not overwrite
- * past the stack boundaries */
+ * stack stores 16-bit pointers we start at 0xEFE for alignment and to
+ * not overwrite past the stack boundaries */
 #define STACK_BASE_ADDR         0xEFE
 #define DISPLAY_REFRESH_ADDR    0xF00
 #define MEMORY_SIZE             0x1000
@@ -174,6 +174,14 @@ chip8_interpret_op8 (uint16_t op)
                 /* Detect carry into VF */
                 s_v_regs[0xF] = ((tmp & 0x100) >> 8);
             }
+            break;
+        case 5: /* 08XY5 */
+            if (s_v_regs[OPC_REGX(op)] > s_v_regs[OPC_REGY(op)]) {
+                s_v_regs[0xF] = 1;
+            } else {
+                s_v_regs[0xF] = 0;
+            }
+            s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] - s_v_regs[OPC_REGY(op)];
             break;
     }
 }

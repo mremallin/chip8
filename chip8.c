@@ -202,6 +202,16 @@ chip8_interpret_op8 (uint16_t op)
     }
 }
 
+static void
+chip8_interpret_op9 (uint16_t op)
+{
+    assert((op & 0xF) == 0);
+
+    if (s_v_regs[OPC_REGX(op)] != s_v_regs[OPC_REGY(op)]) {
+        s_pc += 2;
+    }
+}
+
 /* Dispatch table for different opcode types, upper-most nibble */
 typedef void (*op_decoder_t)(uint16_t op);
 
@@ -215,6 +225,7 @@ static op_decoder_t s_opcode_decoder[] = {
     chip8_interpret_op6,
     chip8_interpret_op7,
     chip8_interpret_op8,
+    chip8_interpret_op9,
 };
 
 static void

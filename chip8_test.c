@@ -647,6 +647,38 @@ opc_8XYE_high_bit (void **state)
 }
 
 static void
+opc_9XY0 (void **state)
+{
+    /* Skip next instruction if Vx != Vy. */
+    int i = 0x9000;
+    int j = 0;
+
+    for (; i < 0x9FFF; i += 0x100) {
+        for (j = 0; j <= 0xF0; j += 0x10) {
+            i = (i & 0xFF0F) | (j & 0xFF);
+            /* Set destination with a known value */
+            chip8_interpret_op(0x6010 | (i & 0x0F00));
+            DEBUG_PRINTF("VX: 0x%x", s_v_regs[(i & 0x0F00) >> 8]);
+            /* Set source to test value */
+            chip8_interpret_op(0x6005 | ((j & 0xF0) << 4));
+            DEBUG_PRINTF("VY: 0x%x", s_v_regs[(i & 0x00F0) >> 4]);
+            DEBUG_PRINTF("VX2: 0x%x", s_v_regs[(i & 0x0F00) >> 8]);
+            chip8_interpret_op(i);
+            DEBUG_PRINTF("After - Op: 0x%x, PC: 0x%x", i, s_pc);
+
+            if ((i & 0x0F00) >> 4 == (j & 0xF0)) {
+                assert_int_equal(s_pc, PROGRAM_LOAD_ADDR);
+            } else {
+                assert_int_equal(s_pc, PROGRAM_LOAD_ADDR + 2);
+            }
+
+            /* Reset program counter back to the start */
+            chip8_interpret_op(0x1000 | PROGRAM_LOAD_ADDR);
+        }
+    }
+}
+
+static void
 chip8_step_instruction (void **state)
 {
     *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -708,6 +740,7 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_8XY7, chip8_test_init),
         cmocka_unit_test_setup(opc_8XYE_no_high_bit, chip8_test_init),
         cmocka_unit_test_setup(opc_8XYE_high_bit, chip8_test_init),
+        cmocka_unit_test_setup(opc_9XY0, chip8_test_init),
     };
 
     parse_args(argc, argv);

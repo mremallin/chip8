@@ -187,6 +187,14 @@ chip8_interpret_op8 (uint16_t op)
             s_v_regs[0xF] = s_v_regs[OPC_REGX(op)] & 0x1;
             s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] >> 1;
             break;
+        case 7: /* 08XY7 */
+            if (s_v_regs[OPC_REGY(op)] > s_v_regs[OPC_REGX(op)]) {
+                s_v_regs[0xF] = 1;
+            } else {
+                s_v_regs[0xF] = 0;
+            }
+            s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGY(op)] - s_v_regs[OPC_REGX(op)];
+            break;
     }
 }
 

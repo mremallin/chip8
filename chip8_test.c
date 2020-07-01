@@ -507,6 +507,9 @@ opc_8XY5 (void **state)
 static void
 opc_8XY6_no_low_bit (void **state)
 {
+    /* Stores the least significant bit of VX in VF and then
+     * shifts VX to the right by 1. */
+
     int i = 0x8006;
 
     for (; i < 0x8FFF; i += 0x100) {
@@ -528,6 +531,9 @@ opc_8XY6_no_low_bit (void **state)
 static void
 opc_8XY6_low_bit (void **state)
 {
+    /* Stores the least significant bit of VX in VF and then
+     * shifts VX to the right by 1. */
+
     int i = 0x8006;
 
     for (; i < 0x8FFF; i += 0x100) {
@@ -545,6 +551,53 @@ opc_8XY6_low_bit (void **state)
         }
     }
 }
+
+static void
+opc_8XY7 (void **state)
+{
+    /* Subtract VX from VY and store to VX. VF is set to 1 when Vx > Vy, and
+     * 0 otherwise. */
+
+    int i = 0x8007;
+    int j = 0;
+
+    for (; i < 0x8FFF; i += 0x100) {
+        for (j = 0; j < 0xF5; j += 0x10) {
+            i = (i & 0xFF0F) | (j & 0xFF);
+            /* Set destination with a known value */
+            chip8_interpret_op(0x6010 | (i & 0x0F00));
+            DEBUG_PRINTF("VX: 0x%x", s_v_regs[(i & 0x0F00) >> 8]);
+            /* Set source to test value */
+            chip8_interpret_op(0x6005 | ((j & 0xF0) << 4));
+            DEBUG_PRINTF("VY: 0x%x", s_v_regs[(i & 0x00F0) >> 4]);
+            DEBUG_PRINTF("VX2: 0x%x", s_v_regs[(i & 0x0F00) >> 8]);
+            /* Set VX to VY */
+            chip8_interpret_op(i);
+            DEBUG_PRINTF("After - Op: 0x%x, VX: 0x%x", i, s_v_regs[(i & 0x0F00) >> 8]);
+
+            /* Different from the Add operation, the borrow flag is set
+             * first and then subtraction is performed. This means that
+             * use of the flag register will impact the result. */
+            if (((i & 0x0F00) >> 8) == 0xF &&
+                       (j & 0xF0) >> 4 == 0xF) {
+                assert_int_equal(s_v_regs[0xF], 0);
+            } else if ((j & 0xF0) == 0xF0) {
+                /* 0x1 - 0x10 = 0xF */
+                assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], 0xF0);
+            } else if ((i & 0x0F00) == 0xF00) {
+                /* VF (0x1) - Vx = 0xFC */
+                assert_int_equal(s_v_regs[0xF], 0x5);
+            } else if (((i & 0x0F00) >> 4) == (j & 0xF0)) {
+                assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], 0x00);
+                assert_int_equal(s_v_regs[0xF], 0);
+            } else {
+                assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], 0xF5);
+                assert_int_equal(s_v_regs[0xF], 0);
+            }
+        }
+    }
+}
+
 
 static void
 chip8_step_instruction (void **state)
@@ -605,6 +658,7 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_8XY5, chip8_test_init),
         cmocka_unit_test_setup(opc_8XY6_no_low_bit, chip8_test_init),
         cmocka_unit_test_setup(opc_8XY6_low_bit, chip8_test_init),
+        cmocka_unit_test_setup(opc_8XY7, chip8_test_init),
     };
 
     parse_args(argc, argv);

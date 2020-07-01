@@ -27,8 +27,3 @@ jobs:
       run: make check
     - name: Generate Coverage
       run: make lcov
-    - name: Create Coverage Report
-        uses: vebr/jest-lcov-reporter@0.2.0
-          with:
-            github-token: ${{ secrets.GITHUB_TOKEN }}
-            lcov-file: ./coverage/chip8_test.info

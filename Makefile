@@ -19,7 +19,7 @@ chip8_test.o: chip8_test.c
 chip8_test: chip8_test.o
 	gcc -o $@ $^ $(LIBRARIES) -lcmocka --coverage
 
-test: chip8_test
+check: chip8_test
 	./chip8_test
 
 lcov:

@@ -4,3 +4,15 @@ Chip8
 =====
 
 Yet another CHIP8 Interpreter. Written in C and SDL2.
+
+Requirements
+============
+  - libsdl2-dev
+  - cmocka
+  - lcov
+
+Building
+========
+  - make
+  - make check
+  - make lcov

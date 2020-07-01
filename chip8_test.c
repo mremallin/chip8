@@ -39,6 +39,10 @@ get_random_byte (void)
 #define DEBUG_PRINTF(fmt, ...) (debug_printf("- "fmt"\n", __VA_ARGS__))
 
 #define BUILD_XNN_OPC(_opc, _x, _nn) (((_opc & 0xF) << 12) | ((_x & 0xF) << 8) | (_nn & 0xFF))
+#define BUILD_NNN_OPC(_opc, _nnn) (((_opc & 0xF) << 12) | (_nnn & 0xFFF))
+
+#define LOAD_X(_x, _nn) (chip8_interpret_op(BUILD_XNN_OPC(6, _x, _nn)))
+#define LOAD_I(_nnn)    (chip8_interpret_op(BUILD_NNN_OPC(0xA, _nnn)))
 
 static void
 opc_00E0 (void **state)
@@ -734,6 +738,71 @@ opc_CXNN (void **state)
 }
 
 static void
+opc_DXYN_nop (void **state)
+{
+    LOAD_X(0, 0);
+    LOAD_I(0x0);
+
+    chip8_interpret_op(0xD001);
+    /* Empty sprite at address 0, so no pixels cleared */
+    assert_int_equal(s_v_regs[0xF], 0);
+    assert_int_equal(s_vram[0][0], 0);
+}
+
+static void
+opc_DXYN_pixel_cleared (void **state)
+{
+    LOAD_X(1, 0);
+    LOAD_I(0x0);
+
+    s_memory[0] = 0x8A;
+    s_vram[0][0] = 0x8A;
+
+    chip8_interpret_op(0xD111);
+    assert_int_equal(s_v_regs[0xF], 1);
+    assert_int_equal(s_vram[0][0], 0);
+}
+
+static void
+opc_DXYN_multiple_bytes (void **state)
+{
+    int i;
+
+    LOAD_X(2, 0);
+    LOAD_I(0x0);
+
+    memset(s_memory, 0x8A, 0xF);
+
+    chip8_interpret_op(0xD22F);
+
+    for (i = 0; i < 0xF; i++) {
+        DEBUG_PRINTF("VRAM[%x][%x]: 0x%x", 0, i, s_vram[0][i]);
+        assert_int_equal(s_vram[0][i], 0x8A);
+    }
+    assert_int_equal(s_v_regs[0xF], 0);
+}
+
+static void
+opc_DXYN_wraparound (void **state)
+{
+    int i;
+
+    LOAD_X(3, 0);
+    LOAD_X(4, 30);
+    LOAD_I(0x0);
+
+    memset(s_memory, 0x8A, 0xF);
+
+    chip8_interpret_op(0xD34F);
+
+    for (i = 0; i < 0xF; i++) {
+        DEBUG_PRINTF("VRAM[%x][%x]: 0x%x", 0, i, s_vram[0][(i + 30) % 32]);
+        assert_int_equal(s_vram[0][(i + 30) % 32], 0x8A);
+    }
+    assert_int_equal(s_v_regs[0xF], 0);
+}
+
+static void
 chip8_step_instruction (void **state)
 {
     *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -800,6 +869,10 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_BNNN_v0_nop, chip8_test_init),
         cmocka_unit_test_setup(opc_BNNN_v0_overflow, chip8_test_init),
         cmocka_unit_test_setup(opc_CXNN, chip8_test_init),
+        cmocka_unit_test_setup(opc_DXYN_nop, chip8_test_init),
+        cmocka_unit_test_setup(opc_DXYN_pixel_cleared, chip8_test_init),
+        cmocka_unit_test_setup(opc_DXYN_multiple_bytes, chip8_test_init),
+        cmocka_unit_test_setup(opc_DXYN_wraparound, chip8_test_init),
     };
 
     parse_args(argc, argv);

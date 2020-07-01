@@ -15,6 +15,7 @@
 
 #define OPC_REGX(_op)   ((_op & 0x0F00) >> 8)
 #define OPC_REGY(_op)   ((_op & 0x00F0) >> 4)
+#define OPC_N(_op)      (_op & 0x000F)
 #define OPC_NN(_op)     (_op & 0x00FF)
 #define OPC_NNN(_op)    (_op & 0x0FFF)
 
@@ -53,7 +54,7 @@ static uint16_t s_stack_ptr;
 /* Graphics buffer */
 #define DISPLAY_WIDTH   64
 #define DISPLAY_HEIGHT  32
-static uint8_t s_vram[BITS2BYTES(DISPLAY_WIDTH * DISPLAY_HEIGHT)];
+static uint8_t s_vram[BITS2BYTES(DISPLAY_WIDTH)][BITS2BYTES(DISPLAY_HEIGHT)];
 
 static void
 clear_display (void)
@@ -72,6 +73,7 @@ static uint16_t
 stack_pop (void)
 {
     uint16_t ret = U16_MEMORY_READ(s_stack_ptr);
+
     s_stack_ptr += 2;
     return (ret);
 }
@@ -109,7 +111,7 @@ chip8_interpret_op2 (uint16_t op)
 static void
 chip8_interpret_op3 (uint16_t op)
 {
-    uint8_t vx = OPC_REGX(op);
+    uint8_t vx  = OPC_REGX(op);
     uint8_t val = OPC_NN(op);
 
     if (s_v_regs[vx] == val) {
@@ -120,7 +122,7 @@ chip8_interpret_op3 (uint16_t op)
 static void
 chip8_interpret_op4 (uint16_t op)
 {
-    uint8_t vx = OPC_REGX(op);
+    uint8_t vx  = OPC_REGX(op);
     uint8_t val = OPC_NN(op);
 
     if (s_v_regs[vx] != val) {
@@ -232,6 +234,37 @@ chip8_interpret_opC (uint16_t op)
     s_v_regs[OPC_REGX(op)] = get_random_byte() & OPC_NN(op);
 }
 
+static void
+chip8_interpret_opD (uint16_t op)
+{
+    uint8_t x           = s_v_regs[OPC_REGX(op)];
+    uint8_t y           = s_v_regs[OPC_REGY(op)];
+    uint8_t num_bytes   = OPC_N(op);
+    int     i;
+    uint8_t previous_sprite;
+
+    /* Start by assuming no pixels will be erased */
+    s_v_regs[0xF] = 0;
+
+    for (i = 0; i < num_bytes; i++) {
+        /* Store the previous sprite */
+        previous_sprite = s_vram[x][y];
+        /* XOR the new byte of the sprite on the screen */
+        s_vram[x][y] ^= s_memory[s_i_reg];
+        /* The following sets VF without a branch, only a comparison.
+         * Let's say we have the following byte in VRAM to start
+         * 0x8A (10001010). If the new byte coming in clears any of
+         * those bits, the resulting byte in VRAM will always be
+         * less than the previous value. We can use that comparison
+         * to set the bit in VF indicating that a pixel was erased.
+         */
+        s_v_regs[0xF] |= (previous_sprite > s_vram[x][y]);
+        /* Move to the next line on screen. */
+        y++;
+        y = y % DISPLAY_HEIGHT;
+    }
+}
+
 /* Dispatch table for different opcode types, upper-most nibble */
 typedef void (*op_decoder_t)(uint16_t op);
 
@@ -249,6 +282,7 @@ static op_decoder_t s_opcode_decoder[] = {
     chip8_interpret_opA,
     chip8_interpret_opB,
     chip8_interpret_opC,
+    chip8_interpret_opD,
 };
 
 static void

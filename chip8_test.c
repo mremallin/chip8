@@ -690,6 +690,29 @@ opc_ANNN (void **state)
 }
 
 static void
+opc_BNNN_v0_nop (void **state)
+{
+    int i = 0xB000;
+
+    for (; i <= 0xBFFF; i++) {
+        /* v0 = 0x0 */
+        chip8_interpret_op(0x6000);
+        chip8_interpret_op(i);
+        /* v0 contents are a NOP in this test */
+        assert_int_equal(s_i_reg, i & 0xFFF);
+    }
+}
+
+static void
+opc_BNNN_v0_overflow (void **state)
+{
+    /* Specifically verify 16-bit add */
+    chip8_interpret_op(0x60FF);
+    chip8_interpret_op(0xBFFF);
+    assert_int_equal(s_i_reg, 0x10FE);
+}
+
+static void
 chip8_step_instruction (void **state)
 {
     *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -753,6 +776,8 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_8XYE_high_bit, chip8_test_init),
         cmocka_unit_test_setup(opc_9XY0, chip8_test_init),
         cmocka_unit_test_setup(opc_ANNN, chip8_test_init),
+        cmocka_unit_test_setup(opc_BNNN_v0_nop, chip8_test_init),
+        cmocka_unit_test_setup(opc_BNNN_v0_overflow, chip8_test_init),
     };
 
     parse_args(argc, argv);

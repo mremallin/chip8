@@ -9,7 +9,7 @@
 #include <SDL2/SDL.h>
 
 #define WINDOW_WIDTH    640
-#define WINDOW_HEIGHT   480
+#define WINDOW_HEIGHT   320
 
 #define ERROR_LOG(...) (fprintf(stderr, __VA_ARGS__))
 

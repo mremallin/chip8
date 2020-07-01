@@ -183,6 +183,10 @@ chip8_interpret_op8 (uint16_t op)
             }
             s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] - s_v_regs[OPC_REGY(op)];
             break;
+        case 6: /* 0x8XY6 */
+            s_v_regs[0xF] = s_v_regs[OPC_REGX(op)] & 0x1;
+            s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] >> 1;
+            break;
     }
 }
 

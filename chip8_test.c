@@ -505,6 +505,48 @@ opc_8XY5 (void **state)
 }
 
 static void
+opc_8XY6_no_low_bit (void **state)
+{
+    int i = 0x8006;
+
+    for (; i < 0x8FFF; i += 0x100) {
+        /* Set destination with a known value */
+        chip8_interpret_op(0x6010 | (i & 0x0F00));
+        DEBUG_PRINTF("VX: 0x%x", s_v_regs[(i & 0x0F00) >> 8]);
+        chip8_interpret_op(i);
+        DEBUG_PRINTF("After - Op: 0x%x, VX: 0x%x", i, s_v_regs[(i & 0x0F00) >> 8]);
+
+        if ((i & 0x0F00) >> 8 == 0xF) {
+            assert_int_equal(s_v_regs[0xF], 0);
+        } else {
+            assert_int_equal(s_v_regs[0xF], 0);
+            assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], 0x08);
+        }
+    }
+}
+
+static void
+opc_8XY6_low_bit (void **state)
+{
+    int i = 0x8006;
+
+    for (; i < 0x8FFF; i += 0x100) {
+        /* Set destination with a known value */
+        chip8_interpret_op(0x6011 | (i & 0x0F00));
+        DEBUG_PRINTF("VX: 0x%x", s_v_regs[(i & 0x0F00) >> 8]);
+        chip8_interpret_op(i);
+        DEBUG_PRINTF("After - Op: 0x%x, VX: 0x%x", i, s_v_regs[(i & 0x0F00) >> 8]);
+
+        if ((i & 0x0F00) >> 8 == 0xF) {
+            assert_int_equal(s_v_regs[0xF], 0);
+        } else {
+            assert_int_equal(s_v_regs[0xF], 1);
+            assert_int_equal(s_v_regs[(i & 0x0F00) >> 8], 0x08);
+        }
+    }
+}
+
+static void
 chip8_step_instruction (void **state)
 {
     *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -561,6 +603,8 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_8XY4_no_carry, chip8_test_init),
         cmocka_unit_test_setup(opc_8XY4_carry, chip8_test_init),
         cmocka_unit_test_setup(opc_8XY5, chip8_test_init),
+        cmocka_unit_test_setup(opc_8XY6_no_low_bit, chip8_test_init),
+        cmocka_unit_test_setup(opc_8XY6_low_bit, chip8_test_init),
     };
 
     parse_args(argc, argv);

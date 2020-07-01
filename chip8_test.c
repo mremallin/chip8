@@ -48,7 +48,8 @@ static void
 opc_00E0 (void **state)
 {
     /* Clears the display */
-    static uint8_t s_zero[BITS2BYTES(DISPLAY_WIDTH * DISPLAY_HEIGHT)] = {0};
+    static uint8_t s_zero[BITS2BYTES(DISPLAY_WIDTH_PIXELS)]
+                         [BITS2BYTES(DISPLAY_HEIGHT_PIXELS)] = {0};
 
     memset(s_vram, 0xFE, sizeof(s_vram));
     chip8_interpret_op(0x00E0);

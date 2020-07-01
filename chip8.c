@@ -52,9 +52,10 @@ static uint16_t s_stack_ptr;
 /* Input */
 
 /* Graphics buffer */
-#define DISPLAY_WIDTH   64
-#define DISPLAY_HEIGHT  32
-static uint8_t s_vram[BITS2BYTES(DISPLAY_WIDTH)][BITS2BYTES(DISPLAY_HEIGHT)];
+#define DISPLAY_WIDTH_PIXELS    64
+#define DISPLAY_HEIGHT_PIXELS   32
+static uint8_t s_vram[BITS2BYTES(DISPLAY_WIDTH_PIXELS)]
+                     [BITS2BYTES(DISPLAY_HEIGHT_PIXELS)];
 
 static void
 clear_display (void)
@@ -261,7 +262,7 @@ chip8_interpret_opD (uint16_t op)
         s_v_regs[0xF] |= (previous_sprite > s_vram[x][y]);
         /* Move to the next line on screen. */
         y++;
-        y = y % DISPLAY_HEIGHT;
+        y = y % DISPLAY_HEIGHT_PIXELS;
     }
 }
 

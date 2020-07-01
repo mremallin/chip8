@@ -23,8 +23,8 @@ check: chip8_test
 	./chip8_test
 
 lcov:
-	mkdir -p lcov && \
-	cd lcov && \
+	mkdir -p coverage && \
+	cd coverage && \
 	lcov --directory ../ --capture --rc lcov_branch_coverage=1 --output-file chip8_test.info && \
 	genhtml --rc lcov_branch_coverage=1 chip8_test.info
 

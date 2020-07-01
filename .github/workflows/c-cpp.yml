@@ -21,7 +21,13 @@ jobs:
       run: sudo apt-get install libegl1-mesa-dev libgles2-mesa-dev
     - name: Install Dependencies
       run: sudo apt-get install libsdl2-dev lcov libcmocka-dev
-    - name: make
+    - name: Build Production
       run: make
-    - name: make check
+    - name: Build and run Unit Tests
       run: make check
+    - name: Generate Coverage
+      run: make lcov
+    - uses: vebr/jest-lcov-reporter@0.2.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          lcov-file: ./coverage/chip8_test.info

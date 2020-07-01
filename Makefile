@@ -5,10 +5,10 @@ UNAME := $(shell uname -s)
 
 .DEFAULT_GOAL := all
 
-main.o: main.c chip8.c
+main.o: main.c chip8.c chip8_utils.c
 	gcc $(CFLAGS) -c -o $@ $<
 
-chip8: main.o chip8.o
+chip8: main.o chip8.o chip8_utils.o
 	gcc -o $@ $^ $(LIBRARIES)
 
 all: chip8

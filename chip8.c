@@ -9,6 +9,8 @@
 #include <assert.h>
 #include <stdbool.h>
 
+#include "chip8_utils.h"
+
 #define BITS2BYTES(_bits) (_bits / 8)
 
 #define OPC_REGX(_op)   ((_op & 0x0F00) >> 8)
@@ -224,6 +226,12 @@ chip8_interpret_opB (uint16_t op)
     s_i_reg = (uint16_t)OPC_NNN(op) + (uint16_t)s_v_regs[0];
 }
 
+static void
+chip8_interpret_opC (uint16_t op)
+{
+    s_v_regs[OPC_REGX(op)] = get_random_byte() & OPC_NN(op);
+}
+
 /* Dispatch table for different opcode types, upper-most nibble */
 typedef void (*op_decoder_t)(uint16_t op);
 
@@ -240,6 +248,7 @@ static op_decoder_t s_opcode_decoder[] = {
     chip8_interpret_op9,
     chip8_interpret_opA,
     chip8_interpret_opB,
+    chip8_interpret_opC,
 };
 
 static void

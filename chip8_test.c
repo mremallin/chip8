@@ -27,6 +27,15 @@ debug_printf (const char *fmt, ...)
     }
 }
 
+uint8_t
+get_random_byte (void)
+{
+    function_called();
+
+    /* Guaranteed to be random */
+    return 4;
+}
+
 #define DEBUG_PRINTF(fmt, ...) (debug_printf("- "fmt"\n", __VA_ARGS__))
 
 #define BUILD_XNN_OPC(_opc, _x, _nn) (((_opc & 0xF) << 12) | ((_x & 0xF) << 8) | (_nn & 0xFF))
@@ -713,6 +722,18 @@ opc_BNNN_v0_overflow (void **state)
 }
 
 static void
+opc_CXNN (void **state)
+{
+    expect_function_call(get_random_byte);
+    chip8_interpret_op(0xC0FF);
+    assert_int_equal(s_v_regs[0], 4);
+
+    expect_function_call(get_random_byte);
+    chip8_interpret_op(0xC000);
+    assert_int_equal(s_v_regs[0], 0);
+}
+
+static void
 chip8_step_instruction (void **state)
 {
     *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -778,6 +799,7 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_ANNN, chip8_test_init),
         cmocka_unit_test_setup(opc_BNNN_v0_nop, chip8_test_init),
         cmocka_unit_test_setup(opc_BNNN_v0_overflow, chip8_test_init),
+        cmocka_unit_test_setup(opc_CXNN, chip8_test_init),
     };
 
     parse_args(argc, argv);

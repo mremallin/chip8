@@ -4,3 +4,4 @@ chip8_test
 *.gcda
 *.gcno
 lcov
+coverage

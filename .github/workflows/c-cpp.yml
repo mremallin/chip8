@@ -27,5 +27,3 @@ jobs:
       run: make check
     - name: Generate Coverage
       run: make lcov
-    - name: Jest Lcov Reporter
-      uses: vebr/jest-lcov-reporter@v0.2.0

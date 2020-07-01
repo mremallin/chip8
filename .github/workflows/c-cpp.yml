@@ -13,6 +13,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Apt Update
+      run: sudo apt-get update -qq
+    - name: Install libsdl2 dependencies
+      run: sudo apt-get install libegl1-mesa-dev libgles2-mesa-dev
+    - name: Install Dependencies
+      run: sudo apt-get install libsdl2-dev lcov
     - name: make
       run: make
     - name: make check

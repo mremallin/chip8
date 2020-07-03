@@ -320,6 +320,11 @@ chip8_interpret_opE (uint16_t op)
                 s_pc += 2;
             }
             break;
+        case 0xA1: /* SKNP Vx */
+            if (!get_key_pressed(s_v_regs[OPC_REGX(op)])) {
+                s_pc += 2;
+            }
+            break;
     }
 }
 

@@ -52,3 +52,9 @@ set_delay_timer (uint8_t ticks)
 {
     (void)ticks;
 }
+
+void
+set_sound_timer (uint8_t ticks)
+{
+    (void)ticks;
+}

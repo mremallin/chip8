@@ -62,6 +62,14 @@ set_delay_timer (uint8_t ticks)
     assert_int_equal(45, ticks);
 }
 
+void
+set_sound_timer (uint8_t ticks)
+{
+    function_called();
+
+    assert_int_equal(50, ticks);
+}
+
 #define DEBUG_PRINTF(fmt, ...) (debug_printf("- "fmt"\n", __VA_ARGS__))
 
 #define BUILD_XNN_OPC(_opc, _x, _nn) (((_opc & 0xF) << 12) | ((_x & 0xF) << 8) | (_nn & 0xFF))
@@ -944,6 +952,18 @@ opc_FX15 (void **state)
 }
 
 static void
+opc_FX18 (void **state)
+{
+    int i;
+
+    for (i = 0; i < NUM_V_REGISTERS; i++) {
+        expect_function_call(set_sound_timer);
+        LOAD_X(i, 50);
+        chip8_interpret_op(0xF018 | ((i & 0xF) << 8));
+    }
+}
+
+static void
 chip8_step_instruction (void **state)
 {
     *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -1021,6 +1041,7 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_FX07, chip8_test_init),
         cmocka_unit_test_setup(opc_FX0A, chip8_test_init),
         cmocka_unit_test_setup(opc_FX15, chip8_test_init),
+        cmocka_unit_test_setup(opc_FX18, chip8_test_init),
     };
 
     parse_args(argc, argv);

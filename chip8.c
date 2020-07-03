@@ -359,6 +359,9 @@ chip8_interpret_opF (uint16_t op)
         case 0x15: /* LD DT, Vx */
             set_delay_timer(s_v_regs[OPC_REGX(op)]);
             break;
+        case 0x18: /* LD ST, Vx */
+            set_sound_timer(s_v_regs[OPC_REGX(op)]);
+            break;
     }
 }
 

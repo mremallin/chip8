@@ -77,4 +77,11 @@ uint8_t get_delay_timer_remaining(void);
  */
 void set_delay_timer(uint8_t ticks);
 
+/**
+ * @brief      Sets the number of 1/60s ticks for the sound timer
+ *
+ * @param[in]  ticks to set
+ */
+void set_sound_timer(uint8_t ticks);
+
 #endif /* __CHIP8_UTILS_H__ */

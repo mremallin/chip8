@@ -11,6 +11,8 @@
 
 /**
  * @brief       Informs the interpreter core about a key press
+ *
+ * @param[in]   The key being pressed
  */
 void chip8_notify_key_pressed(chip8_key_et key);
 

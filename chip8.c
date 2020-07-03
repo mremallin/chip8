@@ -356,6 +356,9 @@ chip8_interpret_opF (uint16_t op)
         case 0x0A: /* LD Vx, K */
             s_execution_paused_for_key_ld = true;
             break;
+        case 0x15: /* LD DT, Vx */
+            set_delay_timer(s_v_regs[OPC_REGX(op)]);
+            break;
     }
 }
 

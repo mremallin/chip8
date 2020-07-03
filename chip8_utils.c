@@ -46,3 +46,9 @@ get_delay_timer_remaining (void)
 {
     return 0;
 }
+
+void
+set_delay_timer (uint8_t ticks)
+{
+    (void)ticks;
+}

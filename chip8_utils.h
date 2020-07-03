@@ -70,4 +70,11 @@ void key_released(chip8_key_et key);
  */
 uint8_t get_delay_timer_remaining(void);
 
+/**
+ * @brief      Sets the number of 1/60s ticks for the delay timer
+ *
+ * @param[in]  ticks to set
+ */
+void set_delay_timer(uint8_t ticks);
+
 #endif /* __CHIP8_UTILS_H__ */

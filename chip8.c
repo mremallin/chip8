@@ -328,6 +328,18 @@ chip8_interpret_opE (uint16_t op)
     }
 }
 
+static void
+chip8_interpret_opF (uint16_t op)
+{
+    switch (OPC_NN(op)) {
+        default:
+            assert(false);
+        case 0x07: /* LD Vx, DT */
+            s_v_regs[OPC_REGX(op)] = get_delay_timer_remaining();
+            break;
+    }
+}
+
 /* Dispatch table for different opcode types, upper-most nibble */
 typedef void (*op_decoder_t)(uint16_t op);
 
@@ -347,6 +359,7 @@ static op_decoder_t s_opcode_decoder[] = {
     chip8_interpret_opC,
     chip8_interpret_opD,
     chip8_interpret_opE,
+    chip8_interpret_opF,
 };
 
 static void

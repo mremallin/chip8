@@ -33,4 +33,4 @@ clean:
 	rm -f *.o chip8_test || true
 	rm -rf *.gcno *.gcda lcov || true
 
-.PHONY: test lcov clean
+.PHONY: lcov clean

@@ -12,29 +12,35 @@
 /* The current state of a given key */
 static bool s_keys_pressed[CHIP8_KEY_MAX] = { false };
 
+uint8_t
+get_random_byte (void)
+{
+	return (uint8_t)rand();
+}
+
 void
 key_pressed (chip8_key_et key)
 {
-	assert(key < CHIP8_KEY_MAX);
-	s_keys_pressed[key] = true;
+    assert(key < CHIP8_KEY_MAX);
+    s_keys_pressed[key] = true;
 }
 
 void
 key_released (chip8_key_et key)
 {
-	assert(key < CHIP8_KEY_MAX);
-	s_keys_pressed[key] = false;
+    assert(key < CHIP8_KEY_MAX);
+    s_keys_pressed[key] = false;
 }
 
 bool
 get_key_pressed (chip8_key_et key)
 {
-	assert(key < CHIP8_KEY_MAX);
-	return s_keys_pressed[key];
+    assert(key < CHIP8_KEY_MAX);
+    return s_keys_pressed[key];
 }
 
 uint8_t
-get_random_byte (void)
+get_delay_timer_remaining (void)
 {
-	return (uint8_t)rand();
+    return 0;
 }

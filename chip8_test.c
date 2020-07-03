@@ -46,6 +46,14 @@ get_key_pressed (chip8_key_et key)
     return s_test_key_is_pressed;
 }
 
+uint8_t
+get_delay_timer_remaining (void)
+{
+    function_called();
+
+    return (42);
+}
+
 #define DEBUG_PRINTF(fmt, ...) (debug_printf("- "fmt"\n", __VA_ARGS__))
 
 #define BUILD_XNN_OPC(_opc, _x, _nn) (((_opc & 0xF) << 12) | ((_x & 0xF) << 8) | (_nn & 0xFF))
@@ -878,6 +886,18 @@ opc_EXA1_not_pressed (void **state)
 }
 
 static void
+opc_FX07 (void **state)
+{
+    int i;
+
+    for (i = 0; i < NUM_V_REGISTERS; i++) {
+        expect_function_call(get_delay_timer_remaining);
+        chip8_interpret_op(0xF007 | ((i & 0xF) << 8));
+        assert_int_equal(s_v_regs[i], 42);
+    }
+}
+
+static void
 chip8_step_instruction (void **state)
 {
     *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -952,6 +972,7 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_EX9E_not_pressed, chip8_test_init),
         cmocka_unit_test_setup(opc_EXA1_pressed, chip8_test_init),
         cmocka_unit_test_setup(opc_EXA1_not_pressed, chip8_test_init),
+        cmocka_unit_test_setup(opc_FX07, chip8_test_init),
     };
 
     parse_args(argc, argv);

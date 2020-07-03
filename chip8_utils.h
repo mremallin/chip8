@@ -21,23 +21,23 @@ uint8_t get_random_byte(void);
  * @brief      Enumeration of all Chip8 keys
  */
 typedef enum {
-	CHIP8_KEY_0,
-	CHIP8_KEY_1,
-	CHIP8_KEY_2,
-	CHIP8_KEY_3,
-	CHIP8_KEY_4,
-	CHIP8_KEY_5,
-	CHIP8_KEY_6,
-	CHIP8_KEY_7,
-	CHIP8_KEY_8,
-	CHIP8_KEY_9,
-	CHIP8_KEY_A,
-	CHIP8_KEY_B,
-	CHIP8_KEY_C,
-	CHIP8_KEY_D,
-	CHIP8_KEY_E,
-	CHIP8_KEY_F,
-	CHIP8_KEY_MAX
+    CHIP8_KEY_0,
+    CHIP8_KEY_1,
+    CHIP8_KEY_2,
+    CHIP8_KEY_3,
+    CHIP8_KEY_4,
+    CHIP8_KEY_5,
+    CHIP8_KEY_6,
+    CHIP8_KEY_7,
+    CHIP8_KEY_8,
+    CHIP8_KEY_9,
+    CHIP8_KEY_A,
+    CHIP8_KEY_B,
+    CHIP8_KEY_C,
+    CHIP8_KEY_D,
+    CHIP8_KEY_E,
+    CHIP8_KEY_F,
+    CHIP8_KEY_MAX
 } chip8_key_et;
 
 /**
@@ -62,5 +62,12 @@ void key_pressed(chip8_key_et key);
  * @param[in]  key   The key
  */
 void key_released(chip8_key_et key);
+
+/**
+ * @brief      Gets the number of 1/60 ticks left in the delay timer
+ *
+ * @return     Number of ticks remaining
+ */
+uint8_t get_delay_timer_remaining(void);
 
 #endif /* __CHIP8_UTILS_H__ */

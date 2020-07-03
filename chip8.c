@@ -87,10 +87,14 @@ chip8_interpret_op0 (uint16_t op)
         default:
             /* Would call machine-code routine at the given address */
             assert(false);
-        case 0x00E0:
+        case 0x00E0: /* CLS */
             clear_display();
             break;
-        case 0x00EE:
+        case 0x00EE: /* RET */
+            /* Return from a subroutine.
+             * The interpreter sets the program counter to the address at the
+             * top of the stack, then subtracts 1 from the stack pointer.
+             */
             s_pc = stack_pop();
             break;
     }
@@ -99,12 +103,19 @@ chip8_interpret_op0 (uint16_t op)
 static void
 chip8_interpret_op1 (uint16_t op)
 {
+    /* JP - Jump to location NNN.
+     * The interpreter sets the program counter to nnn.
+     */
     s_pc = OPC_NNN(op);
 }
 
 static void
 chip8_interpret_op2 (uint16_t op)
 {
+    /* CALL - Call subroutine at NNN.
+     * The interpreter increments the stack pointer, then puts the current PC
+     * on the top of the stack. The PC is then set to nnn.
+     */
     stack_push(s_pc);
     s_pc = OPC_NNN(op);
 }
@@ -112,6 +123,9 @@ chip8_interpret_op2 (uint16_t op)
 static void
 chip8_interpret_op3 (uint16_t op)
 {
+    /* SE Vx, NN
+     * Skip next instruction if Vx = NN.
+     */
     uint8_t vx  = OPC_REGX(op);
     uint8_t val = OPC_NN(op);
 
@@ -123,6 +137,9 @@ chip8_interpret_op3 (uint16_t op)
 static void
 chip8_interpret_op4 (uint16_t op)
 {
+    /* SNE - Vx, NN
+     * Skip next instruction if Vx != NN.
+     */
     uint8_t vx  = OPC_REGX(op);
     uint8_t val = OPC_NN(op);
 
@@ -134,6 +151,9 @@ chip8_interpret_op4 (uint16_t op)
 static void
 chip8_interpret_op5 (uint16_t op)
 {
+    /* SE Vx, Vy
+     * Skip next instruction if Vx = Vy.
+     */
     uint8_t vx = OPC_REGX(op);
     uint8_t vy = OPC_REGY(op);
 
@@ -145,12 +165,18 @@ chip8_interpret_op5 (uint16_t op)
 static void
 chip8_interpret_op6 (uint16_t op)
 {
+    /* LD Vx, NN
+     * Set Vx = NN.
+     */
     s_v_regs[OPC_REGX(op)] = OPC_NN(op);
 }
 
 static void
 chip8_interpret_op7 (uint16_t op)
 {
+    /* ADD Vx, NN
+     * Set Vx = Vx + kk.
+     */
     s_v_regs[OPC_REGX(op)] += OPC_NN(op);
 }
 
@@ -160,47 +186,48 @@ chip8_interpret_op8 (uint16_t op)
     switch (op & 0xF) {
         default:
             assert(false);
-        case 0: /* 0x8XY0 */
+        case 0: /* LD Vx, Vy - Set Vx = Vy. */
             s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGY(op)];
             break;
-        case 1: /* 0x8XY1 */
-            s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] | s_v_regs[OPC_REGY(op)];
+        case 1: /* OR Vx, Vy - Set Vx = Vx OR Vy. */
+            s_v_regs[OPC_REGX(op)] =
+                s_v_regs[OPC_REGX(op)] | s_v_regs[OPC_REGY(op)];
             break;
-        case 2: /* 0x8XY2 */
-            s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] & s_v_regs[OPC_REGY(op)];
+        case 2: /* AND Vx, Vy - Set Vx = Vx AND Vy. */
+            s_v_regs[OPC_REGX(op)] =
+                s_v_regs[OPC_REGX(op)] & s_v_regs[OPC_REGY(op)];
             break;
-        case 3: /* 0x8XY3 */
-            s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] ^ s_v_regs[OPC_REGY(op)];
+        case 3: /* XOR Vx, Vy - Set Vx = Vx XOR Vy. */
+            s_v_regs[OPC_REGX(op)] =
+                s_v_regs[OPC_REGX(op)] ^ s_v_regs[OPC_REGY(op)];
             break;
-        case 4: /* 0x8XY4 */
+        case 4: /* ADD Vx, Vy - Set Vx = Vx + Vy, set VF = carry. */
             {
-                uint16_t tmp = (uint16_t)(s_v_regs[OPC_REGX(op)]) + (uint16_t)(s_v_regs[OPC_REGY(op)]);
+                uint16_t tmp =
+                    (uint16_t)(s_v_regs[OPC_REGX(op)]) +
+                    (uint16_t)(s_v_regs[OPC_REGY(op)]);
                 s_v_regs[OPC_REGX(op)] = tmp & 0xFF;
                 /* Detect carry into VF */
                 s_v_regs[0xF] = ((tmp & 0x100) >> 8);
             }
             break;
-        case 5: /* 08XY5 */
-            if (s_v_regs[OPC_REGX(op)] > s_v_regs[OPC_REGY(op)]) {
-                s_v_regs[0xF] = 1;
-            } else {
-                s_v_regs[0xF] = 0;
-            }
-            s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] - s_v_regs[OPC_REGY(op)];
+        case 5: /* SUB Vx, Vy - Set Vx = Vx - Vy, set VF = NOT borrow. */
+            s_v_regs[0xF] =
+                (s_v_regs[OPC_REGX(op)] > s_v_regs[OPC_REGY(op)]) & 0x1;
+            s_v_regs[OPC_REGX(op)] =
+                s_v_regs[OPC_REGX(op)] - s_v_regs[OPC_REGY(op)];
             break;
-        case 6: /* 0x8XY6 */
+        case 6: /* SHR Vx - Set Vx = Vx SHR 1. */
             s_v_regs[0xF] = s_v_regs[OPC_REGX(op)] & 0x1;
             s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] >> 1;
             break;
-        case 7: /* 08XY7 */
-            if (s_v_regs[OPC_REGY(op)] > s_v_regs[OPC_REGX(op)]) {
-                s_v_regs[0xF] = 1;
-            } else {
-                s_v_regs[0xF] = 0;
-            }
-            s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGY(op)] - s_v_regs[OPC_REGX(op)];
+        case 7: /* SUBN Vx, Vy - Set Vx = Vy - Vx, set VF = NOT borrow. */
+            s_v_regs[0xF] =
+                (s_v_regs[OPC_REGY(op)] > s_v_regs[OPC_REGX(op)]) & 0x1;
+            s_v_regs[OPC_REGX(op)] =
+                s_v_regs[OPC_REGY(op)] - s_v_regs[OPC_REGX(op)];
             break;
-        case 0xE: /* 0x8XYE */
+        case 0xE: /* SHL Vx - Set Vx = Vx SHL 1. */
             s_v_regs[0xF] = ((s_v_regs[OPC_REGX(op)] & 0x80) != 0);
             s_v_regs[OPC_REGX(op)] = s_v_regs[OPC_REGX(op)] << 1;
             break;
@@ -210,6 +237,9 @@ chip8_interpret_op8 (uint16_t op)
 static void
 chip8_interpret_op9 (uint16_t op)
 {
+    /* SNE Vx, Vy
+     * Skip next instruction if Vx != Vy.
+     */
     assert((op & 0xF) == 0);
 
     if (s_v_regs[OPC_REGX(op)] != s_v_regs[OPC_REGY(op)]) {
@@ -220,24 +250,37 @@ chip8_interpret_op9 (uint16_t op)
 static void
 chip8_interpret_opA (uint16_t op)
 {
+    /* LD I, NNN
+     * Set I = NNN.
+     */
     s_i_reg = OPC_NNN(op);
 }
 
 static void
 chip8_interpret_opB (uint16_t op)
 {
+    /* JP V0, NNN
+     * Jump to location NNN + V0.
+     */
     s_i_reg = (uint16_t)OPC_NNN(op) + (uint16_t)s_v_regs[0];
 }
 
 static void
 chip8_interpret_opC (uint16_t op)
 {
+    /* RND Vx, NN
+     * Set Vx = random byte AND NN.
+     */
     s_v_regs[OPC_REGX(op)] = get_random_byte() & OPC_NN(op);
 }
 
 static void
 chip8_interpret_opD (uint16_t op)
 {
+    /* DRW Vx, Vy, N
+     * Display N-byte sprite starting at memory location I at (Vx, Vy),
+     * set VF = collision.
+     */
     uint8_t x           = s_v_regs[OPC_REGX(op)];
     uint8_t y           = s_v_regs[OPC_REGY(op)];
     uint8_t num_bytes   = OPC_N(op);

@@ -62,6 +62,111 @@ static bool s_execution_paused_for_key_ld = false;
 static uint8_t s_vram[BITS2BYTES(DISPLAY_WIDTH_PIXELS)]
                      [BITS2BYTES(DISPLAY_HEIGHT_PIXELS)];
 
+/* Sprites are loaded to the start of memory,
+ * into the interpreter reserved area (0x0 - 0x1FF)
+ */
+#define SPRITE_LOAD_ADDR    0
+
+/* Gets the address in memory of the given sprite */
+#define SPRITE_ADDR(_char)  (SPRITE_LOAD_ADDR + (_char * 5))
+static uint8_t s_character_sprite_data[] = {
+    0xF0, /* **** */
+    0x90, /* *  * */
+    0x90, /* *  * */
+    0x90, /* *  * */
+    0xF0, /* **** */
+/******************/
+    0x20, /*   *  */
+    0x60, /*  **  */
+    0x20, /*   *  */
+    0x20, /*   *  */
+    0x70, /*  *** */
+/******************/
+    0xF0, /* **** */
+    0x10, /*    * */
+    0xF0, /* **** */
+    0x80, /* *    */
+    0xF0, /* **** */
+/******************/
+    0xF0, /* **** */
+    0x10, /*    * */
+    0xF0, /* **** */
+    0x10, /*    * */
+    0xF0, /* **** */
+/******************/
+    0x90, /* *  * */
+    0x90, /* *  * */
+    0xF0, /* **** */
+    0x10, /*    * */
+    0x10, /*    * */
+/******************/
+    0xF0, /* **** */
+    0x80, /* *    */
+    0xF0, /* **** */
+    0x10, /*    * */
+    0xF0, /* **** */
+/******************/
+    0xF0, /* **** */
+    0x80, /* *    */
+    0xF0, /* **** */
+    0x90, /* *  * */
+    0xF0, /* **** */
+/******************/
+    0xF0, /* **** */
+    0x10, /*    * */
+    0x20, /*   *  */
+    0x40, /*  *   */
+    0x40, /*  *   */
+/******************/
+    0xF0, /* **** */
+    0x90, /* *  * */
+    0xF0, /* **** */
+    0x90, /* *  * */
+    0xF0, /* **** */
+/******************/
+    0xF0, /* **** */
+    0x90, /* *  * */
+    0xF0, /* **** */
+    0x10, /*    * */
+    0xF0, /* **** */
+/******************/
+    0xF0, /* **** */
+    0x90, /* *  * */
+    0xF0, /* **** */
+    0x90, /* *  * */
+    0x90, /* *  * */
+/******************/
+    0xE0, /* ***  */
+    0x90, /* *  * */
+    0xE0, /* ***  */
+    0x90, /* *  * */
+    0xE0, /* ***  */
+/******************/
+    0xF0, /* **** */
+    0x80, /* *    */
+    0x80, /* *    */
+    0x80, /* *    */
+    0xF0, /* **** */
+/******************/
+    0xE0, /* ***  */
+    0x90, /* *  * */
+    0x90, /* *  * */
+    0x90, /* *  * */
+    0xE0, /* ***  */
+/******************/
+    0xF0, /* **** */
+    0x80, /* *    */
+    0xF0, /* **** */
+    0x80, /* *    */
+    0xF0, /* **** */
+/******************/
+    0xF0, /* **** */
+    0x80, /* *    */
+    0xF0, /* **** */
+    0x80, /* *    */
+    0x80, /* *    */
+};
+
 static void
 clear_display (void)
 {
@@ -365,6 +470,10 @@ chip8_interpret_opF (uint16_t op)
         case 0x1E: /* ADD I , Vx */
             s_i_reg = s_i_reg + s_v_regs[OPC_REGX(op)];
             break;
+        case 0x29:
+            assert(s_v_regs[OPC_REGX(op)] <= 0xF);
+            s_i_reg = SPRITE_ADDR(s_v_regs[OPC_REGX(op)]);
+            break;
     }
 }
 
@@ -421,4 +530,6 @@ chip8_init (void)
     s_pc = PROGRAM_LOAD_ADDR;
     s_stack_ptr = STACK_BASE_ADDR;
     memset(s_vram, 0, sizeof(s_vram));
+    memcpy(&s_memory[SPRITE_LOAD_ADDR], s_character_sprite_data,
+           sizeof(s_character_sprite_data));
 }

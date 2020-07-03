@@ -776,7 +776,7 @@ static void
 opc_DXYN_nop (void **state)
 {
     LOAD_X(0, 0);
-    LOAD_I(0x0);
+    LOAD_I(0x300);
 
     chip8_interpret_op(0xD001);
     /* Empty sprite at address 0, so no pixels cleared */
@@ -788,9 +788,9 @@ static void
 opc_DXYN_pixel_cleared (void **state)
 {
     LOAD_X(1, 0);
-    LOAD_I(0x0);
+    LOAD_I(0x300);
 
-    s_memory[0] = 0x8A;
+    s_memory[0x300] = 0x8A;
     s_vram[0][0] = 0x8A;
 
     chip8_interpret_op(0xD111);
@@ -804,9 +804,9 @@ opc_DXYN_multiple_bytes (void **state)
     int i;
 
     LOAD_X(2, 0);
-    LOAD_I(0x0);
+    LOAD_I(0x300);
 
-    memset(s_memory, 0x8A, 0xF);
+    memset(&s_memory[0x300], 0x8A, 0xF);
 
     chip8_interpret_op(0xD22F);
 
@@ -824,9 +824,9 @@ opc_DXYN_wraparound (void **state)
 
     LOAD_X(3, 0);
     LOAD_X(4, 30);
-    LOAD_I(0x0);
+    LOAD_I(0x300);
 
-    memset(s_memory, 0x8A, 0xF);
+    memset(&s_memory[0x300], 0x8A, 0xF);
 
     chip8_interpret_op(0xD34F);
 
@@ -977,6 +977,22 @@ opc_FX1E (void **state)
 }
 
 static void
+opc_FX29 (void **state)
+{
+    int i;
+
+    for (i = 0; i <= 0xF; i++) {
+        LOAD_X(0, i);
+
+        /* Loads the sprite address for the character i into I */
+        chip8_interpret_op(0xF029);
+
+        /* Hardcoded verification of the sprite address */
+        assert_int_equal(i * 5, s_i_reg);
+    }
+}
+
+static void
 chip8_step_instruction (void **state)
 {
     *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -1056,6 +1072,7 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_FX15, chip8_test_init),
         cmocka_unit_test_setup(opc_FX18, chip8_test_init),
         cmocka_unit_test_setup(opc_FX1E, chip8_test_init),
+        cmocka_unit_test_setup(opc_FX29, chip8_test_init),
     };
 
     parse_args(argc, argv);

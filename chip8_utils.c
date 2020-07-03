@@ -23,6 +23,7 @@ key_pressed (chip8_key_et key)
 {
     assert(key < CHIP8_KEY_MAX);
     s_keys_pressed[key] = true;
+    chip8_notify_key_pressed(key);
 }
 
 void

@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <stdbool.h>
 
+#include "chip8.h"
 #include "chip8_utils.h"
 
 #define BITS2BYTES(_bits) (_bits / 8)
@@ -46,6 +47,10 @@ static uint16_t s_pc;
 
 /* 16-bit stack pointer */
 static uint16_t s_stack_ptr;
+
+/* Set to true if execution is paused.
+ * Mainly used for opcode LD Vx, K */
+static bool s_execution_paused_for_key_ld = false;
 
 /* Timers */
 
@@ -328,6 +333,17 @@ chip8_interpret_opE (uint16_t op)
     }
 }
 
+void
+chip8_notify_key_pressed (chip8_key_et key)
+{
+    uint16_t key_opcode = U16_MEMORY_READ(s_pc - 2);
+
+    if (s_execution_paused_for_key_ld) {
+        s_v_regs[OPC_REGX(key_opcode)] = key;
+        s_execution_paused_for_key_ld = false;
+    }
+}
+
 static void
 chip8_interpret_opF (uint16_t op)
 {
@@ -336,6 +352,9 @@ chip8_interpret_opF (uint16_t op)
             assert(false);
         case 0x07: /* LD Vx, DT */
             s_v_regs[OPC_REGX(op)] = get_delay_timer_remaining();
+            break;
+        case 0x0A: /* LD Vx, K */
+            s_execution_paused_for_key_ld = true;
             break;
     }
 }
@@ -377,9 +396,11 @@ chip8_step (void)
 {
     uint16_t op = U16_MEMORY_READ(s_pc);
 
-    /* Increment PC for next instruction */
-    s_pc += 2;
-    chip8_interpret_op(op);
+    if (!s_execution_paused_for_key_ld) {
+        /* Increment PC for next instruction */
+        s_pc += 2;
+        chip8_interpret_op(op);
+    }
 }
 
 void

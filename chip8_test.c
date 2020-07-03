@@ -898,6 +898,32 @@ opc_FX07 (void **state)
 }
 
 static void
+opc_FX0A (void **state)
+{
+    int i;
+
+    for (i = 0; i < NUM_V_REGISTERS; i++) {
+        U16_MEMORY_WRITE(PROGRAM_LOAD_ADDR, 0xF00A | ((i & 0xF) << 8));
+        chip8_step();
+        DEBUG_PRINTF("RAM[%x]: 0x%x", PROGRAM_LOAD_ADDR,
+                     U16_MEMORY_READ(PROGRAM_LOAD_ADDR));
+        DEBUG_PRINTF("PC: 0x%x", s_pc);
+        assert_int_equal(s_pc, PROGRAM_LOAD_ADDR+2);
+
+        /* The interpreter core will be waiting for a key press
+         * after the LD Vx, K instruction. It will not advance
+         * execution further until a key is received. */
+        chip8_step();
+        assert_int_equal(s_pc, PROGRAM_LOAD_ADDR+2);
+
+        /* Press a key to continue execution */
+        chip8_notify_key_pressed(CHIP8_KEY_F);
+        assert_int_equal(s_v_regs[i], CHIP8_KEY_F);
+        chip8_init();
+    }
+}
+
+static void
 chip8_step_instruction (void **state)
 {
     *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -973,6 +999,7 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_EXA1_pressed, chip8_test_init),
         cmocka_unit_test_setup(opc_EXA1_not_pressed, chip8_test_init),
         cmocka_unit_test_setup(opc_FX07, chip8_test_init),
+        cmocka_unit_test_setup(opc_FX0A, chip8_test_init),
     };
 
     parse_args(argc, argv);

@@ -302,10 +302,24 @@ chip8_interpret_opD (uint16_t op)
          * less than the previous value. We can use that comparison
          * to set the bit in VF indicating that a pixel was erased.
          */
-        s_v_regs[0xF] |= (previous_sprite > s_vram[x][y]);
+        s_v_regs[0xF] |= (previous_sprite > s_vram[x][y]) & 0x1;
         /* Move to the next line on screen. */
         y++;
         y = y % DISPLAY_HEIGHT_PIXELS;
+    }
+}
+
+static void
+chip8_interpret_opE (uint16_t op)
+{
+    switch (OPC_NN(op)) {
+        default:
+            assert(false);
+        case 0x9E: /* SKP Vx */
+            if (get_key_pressed(s_v_regs[OPC_REGX(op)])) {
+                s_pc += 2;
+            }
+            break;
     }
 }
 
@@ -327,6 +341,7 @@ static op_decoder_t s_opcode_decoder[] = {
     chip8_interpret_opB,
     chip8_interpret_opC,
     chip8_interpret_opD,
+    chip8_interpret_opE,
 };
 
 static void

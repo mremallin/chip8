@@ -5,8 +5,13 @@
  */
 
 #include <stdbool.h>
+#include <assert.h>
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_keyboard.h>
+#include <SDL2/SDL_keycode.h>
+
+#include "chip8_utils.h"
 
 #define WINDOW_WIDTH    640
 #define WINDOW_HEIGHT   320
@@ -16,23 +21,136 @@
 /* Variables related to SDL window and rendering */
 static SDL_Window       *main_window = NULL;
 
+static bool              is_running = true;
+
 static SDL_Window *
 get_window (void)
 {
     return main_window;
 }
 
+/* The chip8 keyboard is layed out as follows:
+ *
+ * -----------------
+ * | 1 | 2 | 3 | C |
+ * -----------------
+ * | 4 | 5 | 6 | D |
+ * -----------------
+ * | 7 | 8 | 9 | E |
+ * -----------------
+ * | A | 0 | B | F |
+ * -----------------
+ *
+ * This is mapped to a QWERTY keyboard via the following
+ * layout:
+ *
+ * -----------------
+ * | 1 | 2 | 3 | 4 |
+ * -----------------
+ * | Q | W | E | R |
+ * -----------------
+ * | A | S | D | F |
+ * -----------------
+ * | Z | X | C | V |
+ * -----------------
+ *
+ */
+
+static chip8_key_et
+map_sdl_key_to_chip8_key (SDL_Event *event)
+{
+    chip8_key_et key = CHIP8_KEY_MAX;
+
+    switch (event->key.keysym.sym) {
+        default:
+            break;
+        case SDLK_1:
+            key = CHIP8_KEY_1;
+            break;
+        case SDLK_2:
+            key = CHIP8_KEY_2;
+            break;
+        case SDLK_3:
+            key = CHIP8_KEY_3;
+            break;
+        case SDLK_4:
+            key = CHIP8_KEY_C;
+            break;
+        case SDLK_q:
+            key = CHIP8_KEY_4;
+            break;
+        case SDLK_w:
+            key = CHIP8_KEY_5;
+            break;
+        case SDLK_e:
+            key = CHIP8_KEY_6;
+            break;
+        case SDLK_r:
+            key = CHIP8_KEY_D;
+            break;
+        case SDLK_a:
+            key = CHIP8_KEY_7;
+            break;
+        case SDLK_s:
+            key = CHIP8_KEY_8;
+            break;
+        case SDLK_d:
+            key = CHIP8_KEY_9;
+            break;
+        case SDLK_f:
+            key = CHIP8_KEY_E;
+            break;
+        case SDLK_z:
+            key = CHIP8_KEY_A;
+            break;
+        case SDLK_x:
+            key = CHIP8_KEY_0;
+            break;
+        case SDLK_c:
+            key = CHIP8_KEY_B;
+            break;
+        case SDLK_v:
+            key = CHIP8_KEY_F;
+            break;
+    }
+
+    return (key);
+}
+
+static void
+handle_key_down_event (SDL_Event *event)
+{
+    chip8_key_et key;
+    assert(event != NULL);
+
+    key = map_sdl_key_to_chip8_key(event);
+    if (key != CHIP8_KEY_MAX) {
+        key_pressed(key);
+    }
+}
+
+static void
+handle_key_up_event (SDL_Event *event)
+{
+    chip8_key_et key;
+    assert(event != NULL);
+
+    key = map_sdl_key_to_chip8_key(event);
+    if (key != CHIP8_KEY_MAX) {
+        key_released(key);
+    }
+}
+
 static void
 run_main_event_loop (void)
 {
-    bool loop = true;
     uint32_t frame_start_ticks = 0;
     uint32_t frame_end_ticks = 0;
     uint32_t frame_delta_ticks = 0;
 
     printf("Entering main loop\n");
 
-    while (loop) {
+    while (is_running) {
         SDL_Event event;
 
         /* Bump the delta in case the framerate is too fast */
@@ -49,11 +167,11 @@ run_main_event_loop (void)
          * Would be nice to have a better way to wait between drawing frames */
         if (SDL_PollEvent(&event) != 0) {
             if (event.type == SDL_QUIT) {
-                loop = false;
+                is_running = false;
             } else if (event.type == SDL_KEYDOWN) {
-                if (event.key.keysym.sym == SDLK_q) {
-                    loop = false;
-                }   
+                handle_key_down_event(&event);
+            } else if (event.type == SDL_KEYUP) {
+                handle_key_up_event(&event);
             }
         }
 

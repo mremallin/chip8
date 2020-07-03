@@ -36,6 +36,16 @@ get_random_byte (void)
     return 4;
 }
 
+static bool s_test_key_is_pressed = false;
+
+bool
+get_key_pressed (chip8_key_et key)
+{
+    function_called();
+
+    return s_test_key_is_pressed;
+}
+
 #define DEBUG_PRINTF(fmt, ...) (debug_printf("- "fmt"\n", __VA_ARGS__))
 
 #define BUILD_XNN_OPC(_opc, _x, _nn) (((_opc & 0xF) << 12) | ((_x & 0xF) << 8) | (_nn & 0xFF))
@@ -804,6 +814,39 @@ opc_DXYN_wraparound (void **state)
 }
 
 static void
+opc_EX9E_pressed (void **state)
+{
+    int i;
+
+    s_test_key_is_pressed = true;
+    for (i = 0; i < NUM_V_REGISTERS; i++) {
+        LOAD_X(i, 0);
+
+        expect_function_call(get_key_pressed);
+        chip8_interpret_op(0xE09E | ((i & 0xF) << 8));
+        assert_int_equal(s_pc, PROGRAM_LOAD_ADDR + 2);
+        /* Reset the program counter back to the start for the next test */
+        chip8_interpret_op(0x1000 | PROGRAM_LOAD_ADDR);
+    }
+}
+
+
+static void
+opc_EX9E_not_pressed (void **state)
+{
+    int i;
+
+    s_test_key_is_pressed = false;
+    for (i = 0; i < NUM_V_REGISTERS; i++) {
+        LOAD_X(i, 0);
+
+        expect_function_call(get_key_pressed);
+        chip8_interpret_op(0xE09E | ((i & 0xF) << 8));
+        assert_int_equal(s_pc, PROGRAM_LOAD_ADDR);
+    }
+}
+
+static void
 chip8_step_instruction (void **state)
 {
     *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -874,6 +917,8 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_DXYN_pixel_cleared, chip8_test_init),
         cmocka_unit_test_setup(opc_DXYN_multiple_bytes, chip8_test_init),
         cmocka_unit_test_setup(opc_DXYN_wraparound, chip8_test_init),
+        cmocka_unit_test_setup(opc_EX9E_pressed, chip8_test_init),
+        cmocka_unit_test_setup(opc_EX9E_not_pressed, chip8_test_init),
     };
 
     parse_args(argc, argv);

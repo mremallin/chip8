@@ -5,6 +5,7 @@
  */
 
 #include "chip8_utils.h"
+#include "chip8.h"
 
 #include <stdlib.h>
 #include <assert.h>

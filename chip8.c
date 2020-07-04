@@ -17,8 +17,6 @@
 #include "chip8.h"
 #include "chip8_utils.h"
 
-#define BITS2BYTES(_bits) (_bits / 8)
-
 #define OPC_REGX(_op)   ((_op & 0x0F00) >> 8)
 #define OPC_REGY(_op)   ((_op & 0x00F0) >> 4)
 #define OPC_N(_op)      (_op & 0x000F)
@@ -68,8 +66,6 @@ static bool s_execution_paused_for_key_ld = false;
 /* Input */
 
 /* Graphics buffer */
-#define DISPLAY_WIDTH_PIXELS    64
-#define DISPLAY_HEIGHT_PIXELS   32
 static uint8_t s_vram[BITS2BYTES(DISPLAY_WIDTH_PIXELS)]
                      [BITS2BYTES(DISPLAY_HEIGHT_PIXELS)];
 
@@ -553,6 +549,12 @@ chip8_step (void)
         s_pc += 2;
         chip8_interpret_op(op);
     }
+}
+
+uint8_t *
+chip8_get_vram (void)
+{
+    return &s_vram[0][0];
 }
 
 void

@@ -21,8 +21,11 @@
 
 /* Variables related to SDL window and rendering */
 static SDL_Window       *main_window = NULL;
+static SDL_Texture      *screen_texture = NULL;
+static SDL_Renderer     *renderer = NULL;
 
 static bool              is_running = true;
+static uint32_t         *screen_backing_store = NULL;
 
 static SDL_Window *
 get_window (void)
@@ -143,6 +146,35 @@ handle_key_up_event (SDL_Event *event)
 }
 
 static void
+paint_screen (void)
+{
+    uint8_t *vram = chip8_get_vram();
+
+    int x;
+    int y;
+    int px;
+
+    for (x = 0; x < DISPLAY_WIDTH_PIXELS; x += 8) {
+        for (y = 0; y < DISPLAY_HEIGHT_PIXELS; y += 8) {
+            /* Each u8 represents 8 pixels, it is packed 1bpp */
+            for (px = 0; px < 8; px++) {
+                if (vram[(x/8) * BITS2BYTES(DISPLAY_WIDTH_PIXELS) + (y/8)] & (1 << px)) {
+                    screen_backing_store[x * WINDOW_WIDTH + y] = 0xFFFFFFFF;
+                } else {
+                    screen_backing_store[x * WINDOW_WIDTH + y] = 0;
+                }
+            }
+        }
+    }
+
+    SDL_UpdateTexture(screen_texture, NULL, screen_backing_store,
+                      WINDOW_WIDTH * sizeof(uint32_t));
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
+}
+
+static void
 run_main_event_loop (void)
 {
     uint32_t frame_start_ticks = 0;
@@ -179,6 +211,7 @@ run_main_event_loop (void)
         /* Update & render go here */
         chip8_step();
         update_timers();
+        paint_screen();
 
         frame_end_ticks = SDL_GetTicks();
         frame_delta_ticks = frame_end_ticks - frame_start_ticks;
@@ -205,12 +238,33 @@ init_sdl (void)
         ERROR_LOG("SDL_CreateWindow failed: %s\n", SDL_GetError());
         exit(EXIT_FAILURE);
     }
+
+    renderer = SDL_CreateRenderer(get_window(), -1,
+                                  SDL_RENDERER_ACCELERATED);
+    if (renderer == NULL) {
+        ERROR_LOG("SDL_CreateRenderer failed: %s\n", SDL_GetError());
+        exit(EXIT_FAILURE);
+    }
+
+    screen_texture = SDL_CreateTexture(renderer,
+                                       SDL_PIXELFORMAT_ARGB8888,
+                                       SDL_TEXTUREACCESS_STREAMING,
+                                       WINDOW_WIDTH, WINDOW_HEIGHT);
+    if (screen_texture == NULL) {
+        ERROR_LOG("SDL_CreateTexture failed: %s\n", SDL_GetError());
+        exit(EXIT_FAILURE);
+    }
+
+    screen_backing_store = malloc(WINDOW_WIDTH * WINDOW_HEIGHT * 4);
+    assert(screen_backing_store);
 }
 
 static void
 at_exit (void)
 {
     if (get_window()) {
+        SDL_DestroyTexture(screen_texture);
+        SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(get_window());
         main_window = NULL;
         SDL_Quit();

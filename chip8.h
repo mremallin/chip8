@@ -21,10 +21,22 @@ void chip8_init(void);
  */
 void chip8_load_program(char *file_path);
 
+
+#define DISPLAY_WIDTH_PIXELS    64
+#define DISPLAY_HEIGHT_PIXELS   32
+#define BITS2BYTES(_bits) (_bits / 8)
+
 /**
  * @brief       Steps the interpreter one instruction
  */
 void chip8_step(void);
+
+/**
+ * @brief       Gets the contents of VRAM
+ *
+ * @returns     The VRAM buffer, packed as bytes.
+ */
+uint8_t *chip8_get_vram(void);
 
 /**
  * @brief       Informs the interpreter core about a key press

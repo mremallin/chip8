@@ -1033,6 +1033,24 @@ opc_FX55 (void **state)
 }
 
 static void
+opc_FX65 (void **state)
+{
+    int i;
+    for (i = 0; i < NUM_V_REGISTERS; i++) {
+        s_memory[0x300 + i] = i;
+    }
+
+    LOAD_I(0x300);
+
+    /* Load all registers from memory */
+    chip8_interpret_op(0xFF65);
+
+    for (i = 0; i < NUM_V_REGISTERS; i++) {
+        assert_int_equal(i, s_v_regs[i]);
+    }
+}
+
+static void
 chip8_step_instruction (void **state)
 {
     *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -1115,6 +1133,7 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_FX29, chip8_test_init),
         cmocka_unit_test_setup(opc_FX33, chip8_test_init),
         cmocka_unit_test_setup(opc_FX55, chip8_test_init),
+        cmocka_unit_test_setup(opc_FX65, chip8_test_init),
     };
 
     parse_args(argc, argv);

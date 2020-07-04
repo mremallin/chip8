@@ -470,9 +470,17 @@ chip8_interpret_opF (uint16_t op)
         case 0x1E: /* ADD I , Vx */
             s_i_reg = s_i_reg + s_v_regs[OPC_REGX(op)];
             break;
-        case 0x29:
+        case 0x29: /* LD F, Vx */
             assert(s_v_regs[OPC_REGX(op)] <= 0xF);
             s_i_reg = SPRITE_ADDR(s_v_regs[OPC_REGX(op)]);
+            break;
+        case 0x33: /* LD B, Bx */
+            {
+                uint8_t val = s_v_regs[OPC_REGX(op)];
+                s_memory[s_i_reg] = val / 100;
+                s_memory[s_i_reg + 1] = (val / 10) % 10;
+                s_memory[s_i_reg + 2] = val % 10;
+            }
             break;
     }
 }

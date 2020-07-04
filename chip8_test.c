@@ -993,6 +993,28 @@ opc_FX29 (void **state)
 }
 
 static void
+opc_FX33 (void **state)
+{
+    int i;
+
+    for (i = 0; i <= 255; i++) {
+        LOAD_X(0, i);
+
+        chip8_interpret_op(0xF033);
+
+        DEBUG_PRINTF("i: %d", i);
+        DEBUG_PRINTF("%u%u%u",
+                     s_memory[s_i_reg],
+                     s_memory[s_i_reg+1],
+                     s_memory[s_i_reg+2]);
+
+        assert_int_equal(s_memory[s_i_reg], i / 100);
+        assert_int_equal(s_memory[s_i_reg + 1], (i % 100) / 10);
+        assert_int_equal(s_memory[s_i_reg + 2], (i % 10));
+    }
+}
+
+static void
 chip8_step_instruction (void **state)
 {
     *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
@@ -1073,6 +1095,7 @@ main(int argc, char *argv[])
         cmocka_unit_test_setup(opc_FX18, chip8_test_init),
         cmocka_unit_test_setup(opc_FX1E, chip8_test_init),
         cmocka_unit_test_setup(opc_FX29, chip8_test_init),
+        cmocka_unit_test_setup(opc_FX33, chip8_test_init),
     };
 
     parse_args(argc, argv);

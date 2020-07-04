@@ -95,7 +95,7 @@ opc_00EE (void **state)
 {
     /* Returns from a subroutine */
     s_stack_ptr = 0xE00;
-    *(uint16_t *)&s_memory[s_stack_ptr] = 0xDEAD;
+    *(uint16_t *)&s_memory[s_stack_ptr + 2] = 0xDEAD;
     chip8_interpret_op(0x00EE);
     assert_int_equal(s_pc, 0xDEAD);
     assert_int_equal(s_stack_ptr, 0xE02);

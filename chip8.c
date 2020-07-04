@@ -482,6 +482,10 @@ chip8_interpret_opF (uint16_t op)
                 s_memory[s_i_reg + 2] = val % 10;
             }
             break;
+        case 0x55: /* LD [I], Vx */
+            memcpy(&s_memory[s_i_reg], s_v_regs,
+                   OPC_REGX(op) + sizeof(s_v_regs[0]));
+            break;
     }
 }
 

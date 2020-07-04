@@ -11,6 +11,7 @@
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_keycode.h>
 
+#include "chip8.h"
 #include "chip8_utils.h"
 
 #define WINDOW_WIDTH    640
@@ -158,7 +159,7 @@ run_main_event_loop (void)
             frame_delta_ticks = 1;
         }
 
-        printf("FPS: %3.3f\r", 1/(frame_delta_ticks*0.001f));
+        //printf("FPS: %3.3f\r", 1/(frame_delta_ticks*0.001f));
 
         frame_start_ticks = SDL_GetTicks();
 
@@ -176,6 +177,8 @@ run_main_event_loop (void)
         }
 
         /* Update & render go here */
+        chip8_step();
+        update_timers();
 
         frame_end_ticks = SDL_GetTicks();
         frame_delta_ticks = frame_end_ticks - frame_start_ticks;
@@ -221,6 +224,13 @@ main (int argc, char *argv[])
     atexit(at_exit);
 
     init_sdl();
+    chip8_init();
+
+    if (argc >= 2) {
+        chip8_load_program(argv[1]);
+    } else {
+        printf("Must provide a program to load!\n");
+    }
 
     run_main_event_loop();
 

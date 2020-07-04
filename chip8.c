@@ -8,6 +8,11 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+/* For byteswapping utilities */
+#include <arpa/inet.h>
 
 #include "chip8.h"
 #include "chip8_utils.h"
@@ -19,6 +24,12 @@
 #define OPC_N(_op)      (_op & 0x000F)
 #define OPC_NN(_op)     (_op & 0x00FF)
 #define OPC_NNN(_op)    (_op & 0x0FFF)
+
+#if 0
+#define INTERPRETER_TRACE(...) (printf( __VA_ARGS__ ))
+#else
+#define INTERPRETER_TRACE(...)
+#endif
 
 /* Information from https://en.wikipedia.org/wiki/CHIP-8 */
 #define PROGRAM_LOAD_ADDR       0x200
@@ -33,7 +44,7 @@
 /* Memory space of the CHIP-8 */
 static uint8_t s_memory[MEMORY_SIZE];
 #define U16_MEMORY_READ(_addr) (*(uint16_t *)&s_memory[_addr])
-#define U16_MEMORY_WRITE(_addr, val) (*(uint16_t *)&s_memory[_addr] = val)
+#define U16_MEMORY_WRITE(_addr, val) (*((uint16_t *)&s_memory[_addr]) = (val))
 
 /* 16, 8-bit V registers */
 #define NUM_V_REGISTERS 16
@@ -176,16 +187,22 @@ clear_display (void)
 static void
 stack_push (uint16_t val)
 {
+    INTERPRETER_TRACE("Stack push: SP: 0x%x - 0x%x\n", s_stack_ptr, val);
     U16_MEMORY_WRITE(s_stack_ptr, val);
     s_stack_ptr -= 2;
+    INTERPRETER_TRACE("Stack push: SP: 0x%x - 0x%x\n", s_stack_ptr, val);
 }
 
 static uint16_t
 stack_pop (void)
 {
-    uint16_t ret = U16_MEMORY_READ(s_stack_ptr);
+    uint16_t ret = 0;
 
+    INTERPRETER_TRACE("Stack pop: SP: 0x%x - 0x%x\n", s_stack_ptr, ret);
     s_stack_ptr += 2;
+    ret = U16_MEMORY_READ(s_stack_ptr);
+    INTERPRETER_TRACE("Stack pop: SP: 0x%x - 0x%x\n", s_stack_ptr, ret);
+
     return (ret);
 }
 
@@ -529,6 +546,8 @@ chip8_step (void)
 {
     uint16_t op = U16_MEMORY_READ(s_pc);
 
+    INTERPRETER_TRACE("PC: 0x%x - 0x%x\n", s_pc, U16_MEMORY_READ(s_pc));
+
     if (!s_execution_paused_for_key_ld) {
         /* Increment PC for next instruction */
         s_pc += 2;
@@ -547,4 +566,70 @@ chip8_init (void)
     memset(s_vram, 0, sizeof(s_vram));
     memcpy(&s_memory[SPRITE_LOAD_ADDR], s_character_sprite_data,
            sizeof(s_character_sprite_data));
+}
+
+static bool
+need_to_byteswap_image (void)
+{
+    if (htonl(47) == 47) {
+        /* Big endian - No change needed for CHIP8*/
+        return false;
+    } else {
+        /* Little endian - Need to byteswap the loaded program */
+        return true;
+    }
+}
+
+static void
+byteswap_image (size_t program_size)
+{
+    size_t i;
+    uint16_t instruction;
+
+    for (i = 0; i < program_size; i += 2) {
+        instruction = U16_MEMORY_READ(PROGRAM_LOAD_ADDR + i);
+        instruction = htons(instruction);
+        U16_MEMORY_WRITE(PROGRAM_LOAD_ADDR + i, instruction);
+    }
+}
+
+void
+chip8_load_program (char *file_path)
+{
+    FILE *fp = fopen(file_path, "r");
+    size_t file_size = 0;
+    size_t total_bytes_read = 0;
+    size_t bytes_read = 0;
+
+    if (fp == NULL) {
+        printf("Unable to open file %s - %s\n", file_path, strerror(errno));
+        exit(1);
+    }
+
+    fseek(fp, 0L, SEEK_END);
+    file_size = ftell(fp);
+
+    fseek(fp, 0L, SEEK_SET);
+    printf("Loading %lu bytes from %s\n", file_size, file_path);
+
+    while (total_bytes_read < file_size) {
+        bytes_read = fread(&s_memory[PROGRAM_LOAD_ADDR], 1,
+                           file_size - total_bytes_read, fp);
+        if (bytes_read == 0) {
+            printf("Unable to read more data from file\n");
+            break;
+        }
+
+        total_bytes_read += bytes_read;
+    }
+
+    printf("Loaded program into memory\n");
+
+    if (need_to_byteswap_image()) {
+        printf("LE architecture detected, byteswapping image...");
+        byteswap_image(total_bytes_read);
+        printf(" Done!\n");
+    }
+
+    fclose(fp);
 }

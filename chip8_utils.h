@@ -84,4 +84,9 @@ void set_delay_timer(uint8_t ticks);
  */
 void set_sound_timer(uint8_t ticks);
 
+/**
+ * @brief      Triggers the timers to update
+ */
+void update_timers(void);
+
 #endif /* __CHIP8_UTILS_H__ */

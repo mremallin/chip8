@@ -9,9 +9,15 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <SDL2/SDL.h>
 
 /* The current state of a given key */
 static bool s_keys_pressed[CHIP8_KEY_MAX] = { false };
+
+static uint32_t s_delay_timer = 0;
+static uint32_t s_delay_timer_started_at = 0;
+static uint32_t s_sound_timer = 0;
+static uint32_t s_sound_timer_started_at = 0;
 
 uint8_t
 get_random_byte (void)
@@ -44,17 +50,38 @@ get_key_pressed (chip8_key_et key)
 uint8_t
 get_delay_timer_remaining (void)
 {
-    return 0;
+    return s_delay_timer;
 }
 
 void
 set_delay_timer (uint8_t ticks)
 {
-    (void)ticks;
+    s_delay_timer_started_at = SDL_GetTicks();
+    s_delay_timer = ticks;
 }
 
 void
 set_sound_timer (uint8_t ticks)
 {
-    (void)ticks;
+    s_sound_timer_started_at = SDL_GetTicks();
+    s_sound_timer = ticks;
+}
+
+void
+update_timers (void)
+{
+    if (s_delay_timer &&
+        (SDL_GetTicks() - s_delay_timer_started_at > 1000/60)) {
+        s_delay_timer -= 1;
+    }
+
+    if (s_sound_timer &&
+        (SDL_GetTicks() - s_sound_timer_started_at > 1000/60)) {
+        s_sound_timer -= 1;
+
+        if (s_sound_timer == 0) {
+            /* Beep */
+            printf("\a");
+        }
+    }
 }

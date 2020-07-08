@@ -71,12 +71,12 @@ void
 update_timers (void)
 {
     if (s_delay_timer &&
-        (SDL_GetTicks() - s_delay_timer_started_at > 1000/60)) {
+        (SDL_GetTicks() - (s_delay_timer_started_at > 1000/60))) {
         s_delay_timer -= 1;
     }
 
     if (s_sound_timer &&
-        (SDL_GetTicks() - s_sound_timer_started_at > 1000/60)) {
+        (SDL_GetTicks() - (s_sound_timer_started_at > 1000/60))) {
         s_sound_timer -= 1;
 
         if (s_sound_timer == 0) {

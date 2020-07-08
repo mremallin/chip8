@@ -66,8 +66,8 @@ static bool s_execution_paused_for_key_ld = false;
 /* Input */
 
 /* Graphics buffer */
-static uint8_t s_vram[BITS2BYTES(DISPLAY_WIDTH_PIXELS)]
-                     [BITS2BYTES(DISPLAY_HEIGHT_PIXELS)];
+static uint8_t s_vram[DISPLAY_HEIGHT_PIXELS]
+                     [DISPLAY_WIDTH_PIXELS];
 
 /* Sprites are loaded to the start of memory,
  * into the interpreter reserved area (0x0 - 0x1FF)
@@ -173,6 +173,18 @@ static uint8_t s_character_sprite_data[] = {
     0x80, /* *    */
     0x80, /* *    */
 };
+
+static bool
+need_to_byteswap_opcode (void)
+{
+    if (htonl(47) == 47) {
+        /* Big endian - No change needed for CHIP8*/
+        return false;
+    } else {
+        /* Little endian - Need to byteswap the loaded program */
+        return true;
+    }
+}
 
 static void
 clear_display (void)
@@ -404,20 +416,38 @@ chip8_interpret_opD (uint16_t op)
      * Display N-byte sprite starting at memory location I at (Vx, Vy),
      * set VF = collision.
      */
-    uint8_t x           = s_v_regs[OPC_REGX(op)];
-    uint8_t y           = s_v_regs[OPC_REGY(op)];
-    uint8_t num_bytes   = OPC_N(op);
-    int     i;
-    uint8_t previous_sprite;
+    uint8_t     x           = s_v_regs[OPC_REGX(op)];
+    uint8_t     y           = s_v_regs[OPC_REGY(op)];
+    uint8_t     num_bytes   = OPC_N(op);
+    uint16_t    sprite_addr = s_i_reg;
+    int         i;
+    int         j;
+    uint8_t     previous_sprite = 0;
+    uint8_t     paintbrush = 0;
 
     /* Start by assuming no pixels will be erased */
     s_v_regs[0xF] = 0;
 
     for (i = 0; i < num_bytes; i++) {
-        /* Store the previous sprite */
-        previous_sprite = s_vram[x][y];
-        /* XOR the new byte of the sprite on the screen */
-        s_vram[x][y] ^= s_memory[s_i_reg];
+        previous_sprite = 0;
+        /* For each byte of the sprite, the packed byte needs
+         * to be expanded back out into individual bytes */
+        for (j = 0; j < 8; j++) {
+            /* Collect all existing pixels of the byte to
+             * see what changes later */
+            previous_sprite |= s_vram[y][x+j];
+        }
+
+        /* Now write the new sprite to VRAM */
+        for (j = 0; j < 8; j++) {
+            if ((s_memory[sprite_addr] & (1 << (7-j))) != 0) {
+                paintbrush = 0xFF;
+            } else {
+                paintbrush = 0x0;
+            }
+            s_vram[y][x+j] = paintbrush ^ s_vram[y][x+j];
+        }
+
         /* The following sets VF without a branch, only a comparison.
          * Let's say we have the following byte in VRAM to start
          * 0x8A (10001010). If the new byte coming in clears any of
@@ -425,8 +455,9 @@ chip8_interpret_opD (uint16_t op)
          * less than the previous value. We can use that comparison
          * to set the bit in VF indicating that a pixel was erased.
          */
-        s_v_regs[0xF] |= (previous_sprite > s_vram[x][y]) & 0x1;
+        s_v_regs[0xF] |= (previous_sprite > s_memory[sprite_addr]) & 0x1;
         /* Move to the next line on screen. */
+        sprite_addr++;
         y++;
         y = y % DISPLAY_HEIGHT_PIXELS;
     }
@@ -455,6 +486,10 @@ void
 chip8_notify_key_pressed (chip8_key_et key)
 {
     uint16_t key_opcode = U16_MEMORY_READ(s_pc - 2);
+
+    if (need_to_byteswap_opcode()) {
+        key_opcode = htons(key_opcode);
+    }
 
     if (s_execution_paused_for_key_ld) {
         s_v_regs[OPC_REGX(key_opcode)] = key;
@@ -530,8 +565,13 @@ static op_decoder_t s_opcode_decoder[] = {
 static void
 chip8_interpret_op (uint16_t op)
 {
-    uint16_t op_class = (op & 0xF000) >> 12;
+    uint16_t op_class;
 
+    if (need_to_byteswap_opcode()){
+        op = htons(op);
+    }
+
+    op_class = (op & 0xF000) >> 12;
     /* Dispatch opcode decoding to the right class of opcode.
      * The uppermost nibble is a fixed constant from 0-F. */
     s_opcode_decoder[op_class](op);
@@ -570,31 +610,6 @@ chip8_init (void)
            sizeof(s_character_sprite_data));
 }
 
-static bool
-need_to_byteswap_image (void)
-{
-    if (htonl(47) == 47) {
-        /* Big endian - No change needed for CHIP8*/
-        return false;
-    } else {
-        /* Little endian - Need to byteswap the loaded program */
-        return true;
-    }
-}
-
-static void
-byteswap_image (size_t program_size)
-{
-    size_t i;
-    uint16_t instruction;
-
-    for (i = 0; i < program_size; i += 2) {
-        instruction = U16_MEMORY_READ(PROGRAM_LOAD_ADDR + i);
-        instruction = htons(instruction);
-        U16_MEMORY_WRITE(PROGRAM_LOAD_ADDR + i, instruction);
-    }
-}
-
 void
 chip8_load_program (char *file_path)
 {
@@ -626,12 +641,6 @@ chip8_load_program (char *file_path)
     }
 
     printf("Loaded program into memory\n");
-
-    if (need_to_byteswap_image()) {
-        printf("LE architecture detected, byteswapping image...");
-        byteswap_image(total_bytes_read);
-        printf(" Done!\n");
-    }
 
     fclose(fp);
 }

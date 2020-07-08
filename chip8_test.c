@@ -11,7 +11,17 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#define chip8_interpret_op chip8_interpret_op_bswap
+
 #include "chip8.c"
+
+#undef chip8_interpret_op
+
+void
+chip8_interpret_op (uint16_t op)
+{
+    chip8_interpret_op_bswap(htons(op));
+}
 
 static bool s_debug = false;
 
@@ -82,8 +92,8 @@ static void
 opc_00E0 (void **state)
 {
     /* Clears the display */
-    static uint8_t s_zero[BITS2BYTES(DISPLAY_WIDTH_PIXELS)]
-                         [BITS2BYTES(DISPLAY_HEIGHT_PIXELS)] = {{0}};
+    static uint8_t s_zero[DISPLAY_WIDTH_PIXELS]
+                         [DISPLAY_HEIGHT_PIXELS] = {{0}};
 
     memset(s_vram, 0xFE, sizeof(s_vram));
     chip8_interpret_op(0x00E0);
@@ -791,11 +801,13 @@ opc_DXYN_pixel_cleared (void **state)
     LOAD_I(0x300);
 
     s_memory[0x300] = 0x8A;
-    s_vram[0][0] = 0x8A;
+    /* Write some bits to be cleared to VRAM */
+    s_vram[0][0] = 0xFF;
+    s_vram[0][4] = 0xFF;
 
     chip8_interpret_op(0xD111);
     assert_int_equal(s_v_regs[0xF], 1);
-    assert_int_equal(s_vram[0][0], 0);
+    assert_int_equal(s_vram[0][0], 0x0);
 }
 
 static void
@@ -812,9 +824,15 @@ opc_DXYN_multiple_bytes (void **state)
 
     for (i = 0; i < 0xF; i++) {
         DEBUG_PRINTF("VRAM[%x][%x]: 0x%x", 0, i, s_vram[0][i]);
-        assert_int_equal(s_vram[0][i], 0x8A);
     }
-    assert_int_equal(s_v_regs[0xF], 0);
+
+    /* Check some pixels */
+    assert_int_equal(s_vram[0][0], 0xFF);
+    assert_int_equal(s_vram[0][1], 0x00);
+    assert_int_equal(s_vram[0][4], 0xFF);
+
+    /* Nothing in VRAM at the start of the test, so no pixels cleared */
+    assert_int_equal(s_v_regs[0xF], 0x0);
 }
 
 static void
@@ -832,8 +850,15 @@ opc_DXYN_wraparound (void **state)
 
     for (i = 0; i < 0xF; i++) {
         DEBUG_PRINTF("VRAM[%x][%x]: 0x%x", 0, i, s_vram[0][(i + 30) % 32]);
-        assert_int_equal(s_vram[0][(i + 30) % 32], 0x8A);
     }
+
+    /* Spot check some pixels */
+    assert_int_equal(s_vram[0][0], 0xFF);
+    assert_int_equal(s_vram[0][1], 0x00);
+    assert_int_equal(s_vram[30][0], 0xFF);
+    assert_int_equal(s_vram[30][1], 0x00);
+
+    /* Nothing in VRAM before, so no pixels will be cleared */
     assert_int_equal(s_v_regs[0xF], 0);
 }
 
@@ -919,7 +944,7 @@ opc_FX0A (void **state)
     int i;
 
     for (i = 0; i < NUM_V_REGISTERS; i++) {
-        U16_MEMORY_WRITE(PROGRAM_LOAD_ADDR, 0xF00A | ((i & 0xF) << 8));
+        U16_MEMORY_WRITE(PROGRAM_LOAD_ADDR, htons(0xF00A | ((i & 0xF) << 8)));
         chip8_step();
         DEBUG_PRINTF("RAM[%x]: 0x%x", PROGRAM_LOAD_ADDR,
                      U16_MEMORY_READ(PROGRAM_LOAD_ADDR));
@@ -980,6 +1005,7 @@ static void
 opc_FX29 (void **state)
 {
     int i;
+    int x, y;
 
     for (i = 0; i <= 0xF; i++) {
         LOAD_X(0, i);
@@ -989,6 +1015,19 @@ opc_FX29 (void **state)
 
         /* Hardcoded verification of the sprite address */
         assert_int_equal(i * 5, s_i_reg);
+        DEBUG_PRINTF("I: 0x%x\n", s_i_reg);
+
+        chip8_interpret_op(0xD005);
+
+        DEBUG_PRINTF("Character 0x%x\n", i);
+        for (y = 0; y < DISPLAY_HEIGHT_PIXELS; y++) {
+            for (x = 0; x < DISPLAY_WIDTH_PIXELS; x++) {
+                DEBUG_PRINTF("0x%x ", s_vram[x][y]);
+            }
+            DEBUG_PRINTF("\n", NULL);
+        }
+        DEBUG_PRINTF("\n", NULL);
+        memset(s_vram, 0, sizeof(s_vram));
     }
 }
 
@@ -1053,7 +1092,7 @@ opc_FX65 (void **state)
 static void
 chip8_step_instruction (void **state)
 {
-    *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = 0x1EEE;
+    *(uint16_t *)&s_memory[PROGRAM_LOAD_ADDR] = htons(0x1EEE);
     chip8_step();
     assert_int_equal(s_pc, 0x0EEE);
 }

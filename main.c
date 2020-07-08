@@ -152,23 +152,19 @@ paint_screen (void)
 
     int x;
     int y;
-    int px;
 
-    for (x = 0; x < DISPLAY_WIDTH_PIXELS; x += 8) {
-        for (y = 0; y < DISPLAY_HEIGHT_PIXELS; y += 8) {
-            /* Each u8 represents 8 pixels, it is packed 1bpp */
-            for (px = 0; px < 8; px++) {
-                if (vram[(x/8) * BITS2BYTES(DISPLAY_WIDTH_PIXELS) + (y/8)] & (1 << px)) {
-                    screen_backing_store[x * WINDOW_WIDTH + y] = 0xFFFFFFFF;
-                } else {
-                    screen_backing_store[x * WINDOW_WIDTH + y] = 0;
-                }
+    for (y = 0; y < DISPLAY_HEIGHT_PIXELS; y++) {
+        for (x = 0; x < DISPLAY_WIDTH_PIXELS; x++) {
+            if (vram[y * DISPLAY_WIDTH_PIXELS + x] != 0) {
+                screen_backing_store[y * DISPLAY_WIDTH_PIXELS + x] = 0xFFFFFFFF;
+            } else {
+                screen_backing_store[y * DISPLAY_WIDTH_PIXELS + x] = 0;
             }
         }
     }
 
     SDL_UpdateTexture(screen_texture, NULL, screen_backing_store,
-                      WINDOW_WIDTH * sizeof(uint32_t));
+                      DISPLAY_WIDTH_PIXELS * sizeof(uint32_t));
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
     SDL_RenderPresent(renderer);
@@ -191,7 +187,7 @@ run_main_event_loop (void)
             frame_delta_ticks = 1;
         }
 
-        //printf("FPS: %3.3f\r", 1/(frame_delta_ticks*0.001f));
+        printf("FPS: %3.3f\r", 1/(frame_delta_ticks*0.001f));
 
         frame_start_ticks = SDL_GetTicks();
 
@@ -249,13 +245,13 @@ init_sdl (void)
     screen_texture = SDL_CreateTexture(renderer,
                                        SDL_PIXELFORMAT_ARGB8888,
                                        SDL_TEXTUREACCESS_STREAMING,
-                                       WINDOW_WIDTH, WINDOW_HEIGHT);
+                                       DISPLAY_WIDTH_PIXELS, DISPLAY_HEIGHT_PIXELS);
     if (screen_texture == NULL) {
         ERROR_LOG("SDL_CreateTexture failed: %s\n", SDL_GetError());
         exit(EXIT_FAILURE);
     }
 
-    screen_backing_store = malloc(WINDOW_WIDTH * WINDOW_HEIGHT * 4);
+    screen_backing_store = malloc(DISPLAY_WIDTH_PIXELS * DISPLAY_HEIGHT_PIXELS * 4);
     assert(screen_backing_store);
 }
 

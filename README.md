@@ -5,6 +5,8 @@ Chip8
 
 Yet another CHIP8 Interpreter. Written in C and SDL2.
 
+![Screenshot](https://github.com/mremallin/chip8/raw/master/images/space_invaders.png)
+
 Requirements
 ============
   - libsdl2-dev

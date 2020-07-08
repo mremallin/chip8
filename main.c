@@ -280,6 +280,7 @@ main (int argc, char *argv[])
         chip8_load_program(argv[1]);
     } else {
         printf("Must provide a program to load!\n");
+        exit(EXIT_FAILURE);
     }
 
     run_main_event_loop();

@@ -153,12 +153,12 @@ paint_screen (void)
     int x;
     int y;
 
+    memset(screen_backing_store, 0, DISPLAY_WIDTH_PIXELS * DISPLAY_HEIGHT_PIXELS * sizeof(uint32_t));
+
     for (y = 0; y < DISPLAY_HEIGHT_PIXELS; y++) {
         for (x = 0; x < DISPLAY_WIDTH_PIXELS; x++) {
             if (vram[y * DISPLAY_WIDTH_PIXELS + x] != 0) {
                 screen_backing_store[y * DISPLAY_WIDTH_PIXELS + x] = 0xFFFFFFFF;
-            } else {
-                screen_backing_store[y * DISPLAY_WIDTH_PIXELS + x] = 0;
             }
         }
     }

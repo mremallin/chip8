@@ -17,6 +17,7 @@
 #include "chip8.h"
 #include "chip8_utils.h"
 
+#define OPC_CLASS(_op)  ((_op & 0xF000) >> 12)
 #define OPC_REGX(_op)   ((_op & 0x0F00) >> 8)
 #define OPC_REGY(_op)   ((_op & 0x00F0) >> 4)
 #define OPC_N(_op)      (_op & 0x000F)
@@ -61,13 +62,11 @@ static uint16_t s_stack_ptr;
  * Mainly used for opcode LD Vx, K */
 static bool s_execution_paused_for_key_ld = false;
 
-/* Timers */
-
-/* Input */
-
 /* Graphics buffer */
 static uint8_t s_vram[DISPLAY_HEIGHT_PIXELS]
                      [DISPLAY_WIDTH_PIXELS];
+
+static bool s_little_endian = false;
 
 /* Sprites are loaded to the start of memory,
  * into the interpreter reserved area (0x0 - 0x1FF)
@@ -487,7 +486,7 @@ chip8_notify_key_pressed (chip8_key_et key)
 {
     uint16_t key_opcode = U16_MEMORY_READ(s_pc - 2);
 
-    if (need_to_byteswap_opcode()) {
+    if (s_little_endian) {
         key_opcode = htons(key_opcode);
     }
 
@@ -567,11 +566,11 @@ chip8_interpret_op (uint16_t op)
 {
     uint16_t op_class;
 
-    if (need_to_byteswap_opcode()){
+    if (s_little_endian) {
         op = htons(op);
     }
 
-    op_class = (op & 0xF000) >> 12;
+    op_class = OPC_CLASS(op);
     /* Dispatch opcode decoding to the right class of opcode.
      * The uppermost nibble is a fixed constant from 0-F. */
     s_opcode_decoder[op_class](op);
@@ -608,6 +607,7 @@ chip8_init (void)
     memset(s_vram, 0, sizeof(s_vram));
     memcpy(&s_memory[SPRITE_LOAD_ADDR], s_character_sprite_data,
            sizeof(s_character_sprite_data));
+    s_little_endian = need_to_byteswap_opcode();
 }
 
 void

@@ -149,47 +149,84 @@ static void
 paint_screen (void)
 {
     uint8_t *vram = chip8_get_vram();
+    uint32_t *gpu_pixels = NULL;
+    int pitch = 0;
 
     int x;
     int y;
 
-    memset(screen_backing_store, 0, DISPLAY_WIDTH_PIXELS * DISPLAY_HEIGHT_PIXELS * sizeof(uint32_t));
+    SDL_LockTexture(screen_texture, NULL, (void **)&gpu_pixels, &pitch);
 
     for (y = 0; y < DISPLAY_HEIGHT_PIXELS; y++) {
         for (x = 0; x < DISPLAY_WIDTH_PIXELS; x++) {
             if (vram[y * DISPLAY_WIDTH_PIXELS + x] != 0) {
-                screen_backing_store[y * DISPLAY_WIDTH_PIXELS + x] = 0xFFFFFFFF;
+                gpu_pixels[y * DISPLAY_WIDTH_PIXELS + x] = 0xFFFFFFFF;
+            } else {
+                gpu_pixels[y * DISPLAY_WIDTH_PIXELS + x] = 0x00000000;
             }
         }
     }
 
-    SDL_UpdateTexture(screen_texture, NULL, screen_backing_store,
-                      DISPLAY_WIDTH_PIXELS * sizeof(uint32_t));
+    SDL_UnlockTexture(screen_texture);
+
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
     SDL_RenderPresent(renderer);
 }
 
+typedef struct minmax32_st_ {
+    uint32_t min;
+    uint32_t max;
+} minmax32_st;
+
+typedef struct frame_histogram_st_ {
+    minmax32_st event;
+    minmax32_st interpreter;
+    minmax32_st drawing;
+} frame_histogram_st;
+
+static void
+histogram_reset (minmax32_st *hist)
+{
+    hist->min = UINT32_MAX;
+    hist->max = 0;
+}
+
+static void
+update_histogram (minmax32_st *hist, uint32_t time)
+{
+    if (time <= hist->min) {
+        hist->min = time;
+    } else if (time >= hist->max) {
+        hist->max = time;
+    }
+}
+
+static void
+print_histogram (frame_histogram_st *hist)
+{
+    printf("Events     : %u - %u\n", hist->event.min, hist->event.max);
+    printf("Interpreter: %u - %u\n", hist->interpreter.min, hist->interpreter.max);
+    printf("Drawing    : %u - %u\n", hist->drawing.min, hist->drawing.max);
+}
+
 static void
 run_main_event_loop (void)
 {
-    uint32_t frame_start_ticks = 0;
-    uint32_t frame_end_ticks = 0;
-    uint32_t frame_delta_ticks = 0;
+    uint32_t step_frame_delta_ticks = 0;
+    uint32_t timers_frame_delta_ticks = 0;
+    uint32_t screen_frame_delta_ticks = 0;
+    uint32_t frame_count = 0;
+    frame_histogram_st hist = {{0}};
+    SDL_Event event;
+
+    histogram_reset(&hist.event);
+    histogram_reset(&hist.interpreter);
+    histogram_reset(&hist.drawing);
 
     printf("Entering main loop\n");
 
     while (is_running) {
-        SDL_Event event;
-
-        /* Bump the delta in case the framerate is too fast */
-        if (frame_delta_ticks == 0) {
-            frame_delta_ticks = 1;
-        }
-
-        printf("FPS: %3.3f\r", 1/(frame_delta_ticks*0.001f));
-
-        frame_start_ticks = SDL_GetTicks();
 
         /* Process incoming events.
          * NOTE: This will chew up 100% CPU.
@@ -205,12 +242,29 @@ run_main_event_loop (void)
         }
 
         /* Update & render go here */
+        step_frame_delta_ticks = SDL_GetTicks();
         chip8_step();
-        update_timers();
-        paint_screen();
+        step_frame_delta_ticks = SDL_GetTicks() - step_frame_delta_ticks;
+        update_histogram(&hist.interpreter, step_frame_delta_ticks);
 
-        frame_end_ticks = SDL_GetTicks();
-        frame_delta_ticks = frame_end_ticks - frame_start_ticks;
+        timers_frame_delta_ticks = SDL_GetTicks();
+        update_timers();
+        timers_frame_delta_ticks = SDL_GetTicks() - timers_frame_delta_ticks;
+        update_histogram(&hist.interpreter, timers_frame_delta_ticks);
+
+        screen_frame_delta_ticks = SDL_GetTicks();
+        paint_screen();
+        screen_frame_delta_ticks = SDL_GetTicks() - screen_frame_delta_ticks;
+        update_histogram(&hist.drawing, screen_frame_delta_ticks);
+
+        //printf("Times: %u, %u, %u\n", step_frame_delta_ticks, timers_frame_delta_ticks, screen_frame_delta_ticks);
+
+        if (frame_count >= 1000) {
+            frame_count = 0;
+            print_histogram(&hist);
+        } else {
+            frame_count++;
+        }
     }
 
     printf("\nExiting...\n");
@@ -236,7 +290,7 @@ init_sdl (void)
     }
 
     renderer = SDL_CreateRenderer(get_window(), -1,
-                                  SDL_RENDERER_ACCELERATED);
+                                  SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (renderer == NULL) {
         ERROR_LOG("SDL_CreateRenderer failed: %s\n", SDL_GetError());
         exit(EXIT_FAILURE);
@@ -267,6 +321,19 @@ at_exit (void)
     }
 }
 
+static void
+print_renderer_info (void)
+{
+    SDL_RendererInfo render_info;
+    int i;
+
+    SDL_GetRendererInfo(renderer, &render_info);
+
+    for (i = 0; i < render_info.num_texture_formats; i++) {
+        printf("Format: %s\n", SDL_GetPixelFormatName(render_info.texture_formats[i]));
+    }
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -282,6 +349,8 @@ main (int argc, char *argv[])
         printf("Must provide a program to load!\n");
         exit(EXIT_FAILURE);
     }
+
+    print_renderer_info();
 
     run_main_event_loop();
 

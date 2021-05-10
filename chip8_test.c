@@ -1004,8 +1004,8 @@ opc_FX1E (void **state)
 static void
 opc_FX29 (void **state)
 {
-    uint i;
-    uint x, y;
+    uint32_t i;
+    uint32_t x, y;
 
     for (i = 0; i <= 0xF; i++) {
         LOAD_X(0, i);

@@ -1004,8 +1004,8 @@ opc_FX1E (void **state)
 static void
 opc_FX29 (void **state)
 {
-    int i;
-    int x, y;
+    uint i;
+    uint x, y;
 
     for (i = 0; i <= 0xF; i++) {
         LOAD_X(0, i);
@@ -1024,9 +1024,9 @@ opc_FX29 (void **state)
             for (x = 0; x < DISPLAY_WIDTH_PIXELS; x++) {
                 DEBUG_PRINTF("0x%x ", s_vram[x][y]);
             }
-            DEBUG_PRINTF("\n", NULL);
+            DEBUG_PRINTF("-\n", NULL);
         }
-        DEBUG_PRINTF("\n", NULL);
+        DEBUG_PRINTF("--\n", NULL);
         memset(s_vram, 0, sizeof(s_vram));
     }
 }

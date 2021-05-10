@@ -1,4 +1,4 @@
-CFLAGS=-Wall -Werror -Wpedantic $(shell sdl2-config --cflags) -g
+CFLAGS=-Wall -Werror -Wpedantic $(shell sdl2-config --cflags) -g -O2
 TEST_CFLAGS=-fprofile-arcs -ftest-coverage -I/usr/local/include
 LIBRARIES := $(shell sdl2-config --libs) -lm
 UNAME := $(shell uname -s)

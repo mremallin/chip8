@@ -151,7 +151,6 @@ paint_screen (void)
     uint8_t *vram = chip8_get_vram();
     uint32_t *gpu_pixels = NULL;
     int pitch = 0;
-
     int x;
     int y;
 
@@ -174,55 +173,10 @@ paint_screen (void)
     SDL_RenderPresent(renderer);
 }
 
-typedef struct minmax32_st_ {
-    uint32_t min;
-    uint32_t max;
-} minmax32_st;
-
-typedef struct frame_histogram_st_ {
-    minmax32_st event;
-    minmax32_st interpreter;
-    minmax32_st drawing;
-} frame_histogram_st;
-
-static void
-histogram_reset (minmax32_st *hist)
-{
-    hist->min = UINT32_MAX;
-    hist->max = 0;
-}
-
-static void
-update_histogram (minmax32_st *hist, uint32_t time)
-{
-    if (time <= hist->min) {
-        hist->min = time;
-    } else if (time >= hist->max) {
-        hist->max = time;
-    }
-}
-
-static void
-print_histogram (frame_histogram_st *hist)
-{
-    printf("Events     : %u - %u\n", hist->event.min, hist->event.max);
-    printf("Interpreter: %u - %u\n", hist->interpreter.min, hist->interpreter.max);
-    printf("Drawing    : %u - %u\n", hist->drawing.min, hist->drawing.max);
-}
-
 static void
 run_main_event_loop (void)
 {
-    uint32_t step_frame_delta_ticks = 0;
-    uint32_t timers_frame_delta_ticks = 0;
-    uint32_t screen_frame_delta_ticks = 0;
-    uint32_t frame_count = 0;
-    frame_histogram_st hist = {{0}};
     SDL_Event event;
-
-    histogram_reset(&hist.event);
-    histogram_reset(&hist.interpreter);
-    histogram_reset(&hist.drawing);
 
     printf("Entering main loop\n");
 
@@ -241,30 +195,9 @@ run_main_event_loop (void)
             }
         }
 
-        /* Update & render go here */
-        step_frame_delta_ticks = SDL_GetTicks();
         chip8_step();
-        step_frame_delta_ticks = SDL_GetTicks() - step_frame_delta_ticks;
-        update_histogram(&hist.interpreter, step_frame_delta_ticks);
-
-        timers_frame_delta_ticks = SDL_GetTicks();
         update_timers();
-        timers_frame_delta_ticks = SDL_GetTicks() - timers_frame_delta_ticks;
-        update_histogram(&hist.interpreter, timers_frame_delta_ticks);
-
-        screen_frame_delta_ticks = SDL_GetTicks();
         paint_screen();
-        screen_frame_delta_ticks = SDL_GetTicks() - screen_frame_delta_ticks;
-        update_histogram(&hist.drawing, screen_frame_delta_ticks);
-
-        //printf("Times: %u, %u, %u\n", step_frame_delta_ticks, timers_frame_delta_ticks, screen_frame_delta_ticks);
-
-        if (frame_count >= 1000) {
-            frame_count = 0;
-            print_histogram(&hist);
-        } else {
-            frame_count++;
-        }
     }
 
     printf("\nExiting...\n");
@@ -289,8 +222,16 @@ init_sdl (void)
         exit(EXIT_FAILURE);
     }
 
+    /* Explicitly mention OpenGL for Mac OS performance. As of this writing,
+     * the Metal SDL2 backend is not as performant as OpenGL. */
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+
+    /* Set OpenGL to swap on VSync. This fixes performance stuttering on Mac OS.
+     * Full speed ahead on a 2012 Macbook Air. */
+    SDL_GL_SetSwapInterval(1);
+
     renderer = SDL_CreateRenderer(get_window(), -1,
-                                  SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+                                  SDL_RENDERER_ACCELERATED);
     if (renderer == NULL) {
         ERROR_LOG("SDL_CreateRenderer failed: %s\n", SDL_GetError());
         exit(EXIT_FAILURE);
@@ -328,6 +269,9 @@ print_renderer_info (void)
     int i;
 
     SDL_GetRendererInfo(renderer, &render_info);
+
+    printf("===== Renderer Info =====\n");
+    printf("Name: %s\n", render_info.name);
 
     for (i = 0; i < render_info.num_texture_formats; i++) {
         printf("Format: %s\n", SDL_GetPixelFormatName(render_info.texture_formats[i]));

@@ -2,22 +2,23 @@ CFLAGS=-Wall -Werror -Wpedantic $(shell sdl2-config --cflags) -g -O2
 TEST_CFLAGS=-fprofile-arcs -ftest-coverage -I/usr/local/include
 LIBRARIES := $(shell sdl2-config --libs) -lm
 UNAME := $(shell uname -s)
+CC=gcc
 
 .DEFAULT_GOAL := all
 
 main.o: main.c chip8.c chip8_utils.c
-	gcc $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 chip8: main.o chip8.o chip8_utils.o
-	gcc -o $@ $^ $(LIBRARIES)
+	$(CC) -o $@ $^ $(LIBRARIES)
 
 all: chip8
 
 chip8_test.o: chip8_test.c
-	gcc $(CFLAGS) $(TEST_CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(TEST_CFLAGS) -c -o $@ $<
 
 chip8_test: chip8_test.o
-	gcc -o $@ $^ $(LIBRARIES) -lcmocka --coverage
+	$(CC) -o $@ $^ $(LIBRARIES) -lcmocka --coverage
 
 check: chip8_test
 	./chip8_test

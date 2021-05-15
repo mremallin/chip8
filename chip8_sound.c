@@ -37,6 +37,9 @@ chip8_sound_beep (void)
 {
 	if (s_beep_sample) {
 		Mix_PlayChannel(-1, s_beep_sample, 0);
+	} else {
+		/* Fallback in case there is no beep file */
+		printf("\a");
 	}
 }
 

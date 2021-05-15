@@ -1,15 +1,16 @@
 CFLAGS=-Wall -Werror -Wpedantic $(shell sdl2-config --cflags) -g -O2
 TEST_CFLAGS=-fprofile-arcs -ftest-coverage -I/usr/local/include
-LIBRARIES := $(shell sdl2-config --libs) -lm
+LIBRARIES := $(shell sdl2-config --libs) -lSDL2_mixer -lm
 UNAME := $(shell uname -s)
 CC=gcc
+#CC=/usr/local/Cellar/gcc/11.1.0/bin/gcc-11
 
 .DEFAULT_GOAL := all
 
-main.o: main.c chip8.c chip8_utils.c
+main.o: main.c chip8.c chip8_utils.c chip8_sound.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-chip8: main.o chip8.o chip8_utils.o
+chip8: main.o chip8.o chip8_utils.o chip8_sound.o
 	$(CC) -o $@ $^ $(LIBRARIES)
 
 all: chip8

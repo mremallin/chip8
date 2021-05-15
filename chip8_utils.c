@@ -5,11 +5,13 @@
  */
 
 #include "chip8_utils.h"
-#include "chip8.h"
 
 #include <stdlib.h>
 #include <assert.h>
 #include <SDL2/SDL.h>
+
+#include "chip8.h"
+#include "chip8_sound.h"
 
 /* The current state of a given key */
 static bool s_keys_pressed[CHIP8_KEY_MAX] = { false };
@@ -83,7 +85,7 @@ update_timers (void)
 
         if (s_sound_timer == 0) {
             /* Beep */
-            printf("\a");
+            chip8_sound_beep();
         }
     }
 }

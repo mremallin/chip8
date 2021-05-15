@@ -13,6 +13,7 @@
 
 #include "chip8.h"
 #include "chip8_utils.h"
+#include "chip8_sound.h"
 
 #define WINDOW_WIDTH    640
 #define WINDOW_HEIGHT   320
@@ -208,7 +209,7 @@ init_sdl (void)
 {
     int rc = 0;
 
-    rc = SDL_Init(SDL_INIT_VIDEO);
+    rc = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
     if (rc != 0) {
         ERROR_LOG("SDL_Init failed (%u): %s\n", rc, SDL_GetError());
         exit(rc);
@@ -253,6 +254,7 @@ init_sdl (void)
 static void
 at_exit (void)
 {
+    chip8_sound_deinit();
     if (get_window()) {
         SDL_DestroyTexture(screen_texture);
         SDL_DestroyRenderer(renderer);
@@ -286,6 +288,7 @@ main (int argc, char *argv[])
 
     init_sdl();
     chip8_init();
+    chip8_sound_init();
 
     if (argc >= 2) {
         chip8_load_program(argv[1]);

@@ -20,7 +20,7 @@ jobs:
     - name: Install libsdl2 dependencies
       run: sudo apt-get install libegl1-mesa-dev libgles2-mesa-dev
     - name: Install Dependencies
-      run: sudo apt-get install libsdl2-dev lcov libcmocka-dev
+      run: sudo apt-get install libsdl2-dev lcov libcmocka-dev libsdl2-mixer-dev
     - name: Show GCC Version
       run: gcc --version
     - name: Build Production

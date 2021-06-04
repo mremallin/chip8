@@ -1022,7 +1022,7 @@ opc_FX29 (void **state)
         DEBUG_PRINTF("Character 0x%x\n", i);
         for (y = 0; y < DISPLAY_HEIGHT_PIXELS; y++) {
             for (x = 0; x < DISPLAY_WIDTH_PIXELS; x++) {
-                DEBUG_PRINTF("0x%x ", s_vram[x][y]);
+                DEBUG_PRINTF("0x%x ", s_vram[y][x]);
             }
             DEBUG_PRINTF("-\n", NULL);
         }
